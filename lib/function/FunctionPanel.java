@@ -42,7 +42,8 @@ public class FunctionPanel extends JPanel {
      * Initialize components
      */
     private void initComponents() {
-        setPreferredSize(new Dimension(280, 0));
+        // Set preferred width for initial split pane layout (height will be determined by parent)
+        setPreferredSize(new Dimension(280, 600));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         entriesPanel.setLayout(new BoxLayout(entriesPanel, BoxLayout.Y_AXIS));
