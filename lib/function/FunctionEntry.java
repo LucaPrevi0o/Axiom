@@ -6,15 +6,32 @@ import java.util.regex.*;
 
 public class FunctionEntry extends JPanel {
     
+    // UI Components
     private JTextField expressionField;
     private JLabel latexLabel;
     private JCheckBox enableCheckbox;
     private JButton deleteButton;
     private JButton editButton;
     private JPanel colorIndicator;
+    private JPanel centerPanel;
+    
+    // State
     private Color functionColor;
     private FunctionPanel parent;
-    private JPanel centerPanel;
+    
+    // Constants
+    private static final int COLOR_INDICATOR_SIZE = 20;
+    private static final int ENTRY_HEIGHT = 80;
+    private static final int EDIT_BUTTON_WIDTH = 60;
+    private static final int DELETE_BUTTON_WIDTH = 40;
+    private static final int BUTTON_HEIGHT = 25;
+    private static final float LATEX_FONT_SIZE = 18f;
+    private static final int LATEX_ICON_MARGIN = 4;
+    private static final double EPSILON = 1e-8;
+    
+    // Card layout view names
+    private static final String VIEW_MODE = "view";
+    private static final String EDIT_MODE = "edit";
     
     /**
      * Constructor to create a function entry
@@ -39,11 +56,11 @@ public class FunctionEntry extends JPanel {
             BorderFactory.createLineBorder(Color.LIGHT_GRAY),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, ENTRY_HEIGHT));
         
         colorIndicator = new JPanel();
         colorIndicator.setBackground(functionColor);
-        colorIndicator.setPreferredSize(new Dimension(20, 20));
+        colorIndicator.setPreferredSize(new Dimension(COLOR_INDICATOR_SIZE, COLOR_INDICATOR_SIZE));
         colorIndicator.setBorder(BorderFactory.createLineBorder(Color.GRAY));
         // Open a color chooser when the color indicator is clicked
         colorIndicator.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -88,14 +105,14 @@ public class FunctionEntry extends JPanel {
 
         // Edit button toggles edit mode
         editButton = new JButton("Edit");
-        editButton.setPreferredSize(new Dimension(60, 25));
+        editButton.setPreferredSize(new Dimension(EDIT_BUTTON_WIDTH, BUTTON_HEIGHT));
         editButton.addActionListener(e -> startEdit());
         
-    deleteButton = new JButton("×");
-    deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
-    deleteButton.setPreferredSize(new Dimension(40, 25));
-    deleteButton.setFocusPainted(false);
-    deleteButton.addActionListener(e -> parent.removeFunction(this));
+        deleteButton = new JButton("×");
+        deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
+        deleteButton.setPreferredSize(new Dimension(DELETE_BUTTON_WIDTH, BUTTON_HEIGHT));
+        deleteButton.setFocusPainted(false);
+        deleteButton.addActionListener(e -> parent.removeFunction(this));
     }
     
     /**
@@ -115,16 +132,16 @@ public class FunctionEntry extends JPanel {
 
         // center panel holds either latexLabel (view mode) or expressionField (edit mode)
         centerPanel = new JPanel(new CardLayout());
-        centerPanel.add(latexLabel, "view");
-        centerPanel.add(expressionField, "edit");
+        centerPanel.add(latexLabel, VIEW_MODE);
+        centerPanel.add(expressionField, EDIT_MODE);
         // start in view mode
-        ((CardLayout) centerPanel.getLayout()).show(centerPanel, "view");
+        ((CardLayout) centerPanel.getLayout()).show(centerPanel, VIEW_MODE);
         add(centerPanel, BorderLayout.CENTER);
     }
 
     private void startEdit() {
         CardLayout cl = (CardLayout) centerPanel.getLayout();
-        cl.show(centerPanel, "edit");
+        cl.show(centerPanel, EDIT_MODE);
         expressionField.requestFocusInWindow();
         expressionField.selectAll();
     }
@@ -135,7 +152,7 @@ public class FunctionEntry extends JPanel {
         String newExpr = expressionField.getText();
         setLatexText(newExpr);
         CardLayout cl = (CardLayout) centerPanel.getLayout();
-        cl.show(centerPanel, "view");
+        cl.show(centerPanel, VIEW_MODE);
         parent.updateGraph();
     }
 
@@ -156,7 +173,7 @@ public class FunctionEntry extends JPanel {
                 Class<?> consts = Class.forName("org.scilab.forge.jlatexmath.TeXConstants");
                 int styleDisplay = consts.getField("STYLE_DISPLAY").getInt(null);
                 java.lang.reflect.Method createIcon = formulaCls.getMethod("createTeXIcon", int.class, float.class);
-                Object icon = createIcon.invoke(formula, styleDisplay, 18f);
+                Object icon = createIcon.invoke(formula, styleDisplay, LATEX_FONT_SIZE);
                 latexLabel.setText("");
                 latexLabel.setIcon((javax.swing.Icon) icon);
                 // reflectively retrieve icon size

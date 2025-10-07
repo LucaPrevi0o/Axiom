@@ -1,7 +1,6 @@
 package lib.function;
 import javax.swing.*;
 
-import lib.graph.GraphFunction;
 import lib.graph.GraphPanel;
 
 import java.awt.*;
@@ -111,63 +110,14 @@ public class FunctionPanel extends JPanel {
      * Update the graph with all current functions
      */
     public void updateGraph() {
-        // Rebuild named functions map and visible functions list
-        namedFunctions.clear();
-        List<GraphFunction> functions = new ArrayList<>();
-        for (FunctionEntry entry : functionEntries) {
-            String expr = entry.getExpression().trim();
-            // Detect definitions of the form name(x)=expression
-            if (expr.matches("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*\\)\\s*=.*$")) {
-                // extract name and rhs
-                int eq = expr.indexOf('=');
-                String left = expr.substring(0, eq).trim();
-                String name = left.substring(0, left.indexOf('(')).trim();
-                String rhs = expr.substring(eq + 1).trim();
-                namedFunctions.put(name.toLowerCase(), rhs);
-                // also add the named function to be plotted using this entry's color
-                if (entry.isEnabled()) {
-                    // If the RHS itself is an intersection like (a=b), create a named intersection
-                    if (rhs.matches("^\\s*\\(.*=.*\\)\\s*$")) {
-                        String insideRhs = rhs.substring(1, rhs.length() - 1).trim();
-                        int eqIdxRhs = insideRhs.indexOf('=');
-                        if (eqIdxRhs > 0) {
-                            String leftExpr = insideRhs.substring(0, eqIdxRhs).trim();
-                            String rightExpr = insideRhs.substring(eqIdxRhs + 1).trim();
-                            GraphFunction gf = lib.graph.GraphFunction.intersection(leftExpr, rightExpr, entry.getColor());
-                            gf.setName(name);
-                            functions.add(gf);
-                        }
-                    } else {
-                        // plot the function by its RHS expression and set its name
-                        GraphFunction gf = new GraphFunction(rhs, entry.getColor());
-                        gf.setName(name);
-                        functions.add(gf);
-                    }
-                }
-            }
-            // Detect intersection request: (expr1=expr2)
-            else if (expr.matches("^\\s*\\(.*=.*\\)\\s*$")) {
-                // strip surrounding parentheses
-                String inside = expr.trim();
-                inside = inside.substring(1, inside.length() - 1).trim();
-                int eqIdx = inside.indexOf('=');
-                if (eqIdx > 0) {
-                    String left = inside.substring(0, eqIdx).trim();
-                    String right = inside.substring(eqIdx + 1).trim();
-                    if (entry.isEnabled()) {
-                        functions.add(lib.graph.GraphFunction.intersection(left, right, entry.getColor()));
-                    }
-                }
-            } else {
-                if (entry.isEnabled()) {
-                    functions.add(new GraphFunction(expr, entry.getColor()));
-                }
-            }
-        }
-
+        // Use FunctionParser to parse all entries
+        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries);
+        
+        namedFunctions = result.getNamedFunctions();
+        
         // Provide named functions to the graph panel so evaluator can resolve them
         graphPanel.setUserFunctions(namedFunctions);
-        graphPanel.setFunctions(functions);
+        graphPanel.setFunctions(result.getGraphFunctions());
         graphPanel.repaint();
     }
 
