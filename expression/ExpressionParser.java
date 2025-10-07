@@ -1,9 +1,18 @@
 package expression;
+import java.util.Map;
+
 public class ExpressionParser {
 
     private int pos = -1;
     private int ch;
     private String str;
+    private Map<String, String> userFunctions;
+
+    public ExpressionParser() { this(null); }
+
+    public ExpressionParser(Map<String, String> userFunctions) {
+        this.userFunctions = userFunctions;
+    }
     
     /**
      * Parse and evaluate the mathematical expression
@@ -98,7 +107,14 @@ public class ExpressionParser {
             } else {
                 // function application: func followed by factor (e.g., sin x or sin(x))
                 x = parseFactor();
-                x = applyFunction(func, x);
+                // If this is a user-defined function, evaluate its expression with the provided argument
+                if (userFunctions != null && userFunctions.containsKey(func)) {
+                    String funcExpr = userFunctions.get(func);
+                    // Evaluate the function expression using the same userFunctions map
+                    x = new ExpressionEvaluator(userFunctions).evaluate(funcExpr, x);
+                } else {
+                    x = applyFunction(func, x);
+                }
             }
         } else {
             throw new Exception("Unexpected: " + (char) ch);

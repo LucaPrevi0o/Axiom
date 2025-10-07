@@ -66,6 +66,7 @@ public class FunctionEntry extends JPanel {
             public void removeUpdate(javax.swing.event.DocumentEvent e) { parent.updateGraph(); }
             public void insertUpdate(javax.swing.event.DocumentEvent e) { parent.updateGraph(); }
         });
+        // no extra UI updates needed
         
         deleteButton = new JButton("×");
         deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
@@ -80,15 +81,17 @@ public class FunctionEntry extends JPanel {
     private void layoutComponents() {
         setLayout(new BorderLayout(5, 5));
         
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        topPanel.add(colorIndicator);
-        topPanel.add(enableCheckbox);
-        topPanel.add(new JLabel("f(x) ="));
+    JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+    topPanel.add(colorIndicator);
+    topPanel.add(enableCheckbox);
+    // we keep the UI minimal: only color indicator and enable checkbox before the expression field
         
         add(topPanel, BorderLayout.NORTH);
         add(expressionField, BorderLayout.CENTER);
         add(deleteButton, BorderLayout.EAST);
     }
+
+    
     
     /**
      * Get the expression from this entry

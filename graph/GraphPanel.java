@@ -13,6 +13,7 @@ public class GraphPanel extends JPanel {
 
     private List<GraphFunction> functions;
     private ExpressionEvaluator evaluator;
+    private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
     
     // Graph bounds
     private double minX = -10;
@@ -29,7 +30,7 @@ public class GraphPanel extends JPanel {
      */
     public GraphPanel() {
         setBackground(Color.WHITE);
-        evaluator = new ExpressionEvaluator();
+        evaluator = new ExpressionEvaluator(userFunctions);
         functions = new ArrayList<>();
         
         setupMouseListeners();
@@ -132,6 +133,11 @@ public class GraphPanel extends JPanel {
      */
     public void setFunctions(List<GraphFunction> functions) {
         this.functions = functions;
+    }
+
+    public void setUserFunctions(java.util.Map<String, String> userFunctions) {
+        this.userFunctions = userFunctions == null ? new java.util.HashMap<>() : userFunctions;
+        this.evaluator = new ExpressionEvaluator(this.userFunctions);
     }
     
     /**

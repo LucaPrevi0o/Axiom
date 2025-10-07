@@ -12,6 +12,7 @@ public class FunctionPanel extends JPanel {
     
     private GraphPanel graphPanel;
     private List<FunctionEntry> functionEntries;
+    private java.util.Map<String, String> namedFunctions = new java.util.HashMap<>();
     private JPanel entriesPanel;
     private JButton addButton;
     
@@ -32,8 +33,8 @@ public class FunctionPanel extends JPanel {
         initComponents();
         layoutComponents();
         
-        // Add a default function
-        addFunction("x^2");
+    // Add a default named function
+    addFunction("f(x)=x^2");
     }
     
     /**
@@ -110,13 +111,38 @@ public class FunctionPanel extends JPanel {
      * Update the graph with all current functions
      */
     public void updateGraph() {
+        // Rebuild named functions map and visible functions list
+        namedFunctions.clear();
         List<GraphFunction> functions = new ArrayList<>();
         for (FunctionEntry entry : functionEntries) {
-            if (entry.isEnabled()) {
-                functions.add(new GraphFunction(entry.getExpression(), entry.getColor()));
+            String expr = entry.getExpression().trim();
+            // Detect definitions of the form name(x)=expression
+            if (expr.matches("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*\\)\\s*=.*$")) {
+                // extract name and rhs
+                int eq = expr.indexOf('=');
+                String left = expr.substring(0, eq).trim();
+                String name = left.substring(0, left.indexOf('(')).trim();
+                String rhs = expr.substring(eq + 1).trim();
+                namedFunctions.put(name.toLowerCase(), rhs);
+                // also add the named function to be plotted using this entry's color
+                if (entry.isEnabled()) {
+                    // plot the function by its RHS expression
+                    functions.add(new GraphFunction(rhs, entry.getColor()));
+                }
+            } else {
+                if (entry.isEnabled()) {
+                    functions.add(new GraphFunction(expr, entry.getColor()));
+                }
             }
         }
+
+        // Provide named functions to the graph panel so evaluator can resolve them
+        graphPanel.setUserFunctions(namedFunctions);
         graphPanel.setFunctions(functions);
         graphPanel.repaint();
+    }
+
+    public java.util.Map<String, String> getNamedFunctions() {
+        return namedFunctions;
     }
 }

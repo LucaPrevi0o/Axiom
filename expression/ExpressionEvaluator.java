@@ -1,5 +1,15 @@
 package expression;
+import java.util.Map;
+
 public class ExpressionEvaluator {
+
+    private Map<String, String> userFunctions;
+
+    public ExpressionEvaluator() { this(null); }
+
+    public ExpressionEvaluator(Map<String, String> userFunctions) {
+        this.userFunctions = userFunctions;
+    }
     
     /**
      * Evaluate the mathematical expression for a given value of {@code x}
@@ -39,6 +49,6 @@ public class ExpressionEvaluator {
     private double evaluateExpression(String expr) throws Exception {
         // Simple expression evaluator (you'll need to expand this)
         // For now, using a basic approach
-        return new ExpressionParser().parse(expr);
+        return new ExpressionParser(userFunctions).parse(expr);
     }
 }
