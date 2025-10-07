@@ -40,6 +40,9 @@ public class ViewportManager {
         
         // Zoom around the mouse position
         bounds.zoom(zoomFactor, mouseGraphX, mouseGraphY);
+        
+        // Enforce square aspect ratio after zoom
+        bounds.enforceSquareAspectRatio(screenWidth, screenHeight);
     }
     
     /**
@@ -68,6 +71,9 @@ public class ViewportManager {
         double graphDy = -dy * bounds.getRangeY() / screenHeight; // Negative because screen Y is inverted
         
         bounds.pan(-graphDx, -graphDy);
+        
+        // Enforce square aspect ratio after pan
+        bounds.enforceSquareAspectRatio(screenWidth, screenHeight);
         
         lastMousePoint = mousePoint;
     }
@@ -104,19 +110,23 @@ public class ViewportManager {
         double centerX = bounds.getCenterX();
         double centerY = bounds.getCenterY();
         
-        // Current units per pixel
+        // Current units per pixel (use the larger to maintain square grid)
         double unitsPerPixelX = bounds.getRangeX() / Math.max(1, oldWidth);
         double unitsPerPixelY = bounds.getRangeY() / Math.max(1, oldHeight);
+        double unitsPerPixel = Math.max(unitsPerPixelX, unitsPerPixelY);
         
-        // Recompute half ranges preserving units per pixel
-        double halfWidth = (unitsPerPixelX * newWidth) / 2.0;
-        double halfHeight = (unitsPerPixelY * newHeight) / 2.0;
+        // Recompute ranges preserving square aspect ratio
+        double newRangeX = unitsPerPixel * newWidth;
+        double newRangeY = unitsPerPixel * newHeight;
         
-        double minX = centerX - halfWidth;
-        double maxX = centerX + halfWidth;
-        double minY = centerY - halfHeight;
-        double maxY = centerY + halfHeight;
+        double minX = centerX - newRangeX / 2.0;
+        double maxX = centerX + newRangeX / 2.0;
+        double minY = centerY - newRangeY / 2.0;
+        double maxY = centerY + newRangeY / 2.0;
         
         bounds.setBounds(minX, maxX, minY, maxY);
+        
+        // Enforce square aspect ratio
+        bounds.enforceSquareAspectRatio(newWidth, newHeight);
     }
 }

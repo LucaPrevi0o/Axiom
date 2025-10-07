@@ -15,7 +15,7 @@ public class GraphingCalculator extends JFrame {
      */
     public GraphingCalculator() {
         setTitle("Axiom");
-        setSize(1000, 600);
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         

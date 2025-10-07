@@ -156,4 +156,34 @@ public class GraphBounds {
         maxY = focusY + relY * newRangeY;
         minY = maxY - newRangeY;
     }
+    
+    /**
+     * Adjust bounds to maintain square aspect ratio (1:1)
+     * The larger dimension will be reduced to match the smaller one
+     * @param screenWidth Width of the screen in pixels
+     * @param screenHeight Height of the screen in pixels
+     */
+    public void enforceSquareAspectRatio(int screenWidth, int screenHeight) {
+        if (screenWidth <= 0 || screenHeight <= 0) return;
+        
+        // Calculate current units per pixel for both dimensions
+        double unitsPerPixelX = getRangeX() / screenWidth;
+        double unitsPerPixelY = getRangeY() / screenHeight;
+        
+        // Use the larger units per pixel to maintain square grid
+        double unitsPerPixel = Math.max(unitsPerPixelX, unitsPerPixelY);
+        
+        // Calculate new ranges that maintain square aspect ratio
+        double newRangeX = unitsPerPixel * screenWidth;
+        double newRangeY = unitsPerPixel * screenHeight;
+        
+        // Center the new bounds around the current center
+        double centerX = getCenterX();
+        double centerY = getCenterY();
+        
+        minX = centerX - newRangeX / 2.0;
+        maxX = centerX + newRangeX / 2.0;
+        minY = centerY - newRangeY / 2.0;
+        maxY = centerY + newRangeY / 2.0;
+    }
 }

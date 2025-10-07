@@ -67,25 +67,63 @@ public class GraphRenderer {
      * @param height Panel height
      */
     public void drawGrid(Graphics2D g2, int width, int height) {
-        g2.setColor(new Color(220, 220, 220));
-        g2.setStroke(new BasicStroke(1));
-        
         // Compute nice tick spacing based on view range
+        // Use the same step for both X and Y to maintain square grid cells
         double xRange = bounds.getRangeX();
         double yRange = bounds.getRangeY();
-        double xStep = niceStep(xRange, 8);
-        double yStep = niceStep(yRange, 8);
+        double maxRange = Math.max(xRange, yRange);
+        double step = niceStep(maxRange, 8);  // Single step for both axes to ensure square grid
         
-        // Vertical grid lines
-        double startX = Math.floor(bounds.getMinX() / xStep) * xStep;
-        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += xStep) {
+        // Calculate main grid cell size in pixels
+        double unitsPerPixel = maxRange / Math.max(width, height);
+        double pixelsPerGridCell = step / unitsPerPixel;
+        
+        // Only draw sub-grid if main grid cells are large enough (at least 50 pixels)
+        final int MIN_PIXELS_FOR_SUBGRID = 50;
+        boolean drawSubGrid = pixelsPerGridCell >= MIN_PIXELS_FOR_SUBGRID;
+        
+        if (drawSubGrid) {
+            // Draw sub-grid (5x subdivisions) with lighter color
+            g2.setColor(new Color(240, 240, 240));  // Very light grey for sub-grid
+            g2.setStroke(new BasicStroke(1));
+            
+            double subStep = step / 5.0;
+            
+            // Vertical sub-grid lines
+            double startSubX = Math.floor(bounds.getMinX() / subStep) * subStep;
+            for (double gx = startSubX; gx <= bounds.getMaxX() + 1e-12; gx += subStep) {
+                // Skip if this is a main grid line
+                if (Math.abs(gx % step) > 1e-10) {
+                    int x = bounds.xToScreen(gx, width);
+                    g2.drawLine(x, 0, x, height);
+                }
+            }
+            
+            // Horizontal sub-grid lines
+            double startSubY = Math.floor(bounds.getMinY() / subStep) * subStep;
+            for (double gy = startSubY; gy <= bounds.getMaxY() + 1e-12; gy += subStep) {
+                // Skip if this is a main grid line
+                if (Math.abs(gy % step) > 1e-10) {
+                    int y = bounds.yToScreen(gy, height);
+                    g2.drawLine(0, y, width, y);
+                }
+            }
+        }
+        
+        // Draw main grid with medium grey
+        g2.setColor(new Color(200, 200, 200));  // Medium grey for main grid
+        g2.setStroke(new BasicStroke(1));
+        
+        // Vertical main grid lines
+        double startX = Math.floor(bounds.getMinX() / step) * step;
+        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += step) {
             int x = bounds.xToScreen(gx, width);
             g2.drawLine(x, 0, x, height);
         }
         
-        // Horizontal grid lines
-        double startY = Math.floor(bounds.getMinY() / yStep) * yStep;
-        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += yStep) {
+        // Horizontal main grid lines
+        double startY = Math.floor(bounds.getMinY() / step) * step;
+        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += step) {
             int y = bounds.yToScreen(gy, height);
             g2.drawLine(0, y, width, y);
         }
@@ -113,26 +151,26 @@ public class GraphRenderer {
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
         double xRange = bounds.getRangeX();
         double yRange = bounds.getRangeY();
-        double xStep = niceStep(xRange, 8);
-        double yStep = niceStep(yRange, 8);
+        double maxRange = Math.max(xRange, yRange);
+        double step = niceStep(maxRange, 8);  // Same step for both axes to ensure square grid
         
         // X-axis ticks
-        double startX = Math.floor(bounds.getMinX() / xStep) * xStep;
-        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += xStep) {
+        double startX = Math.floor(bounds.getMinX() / step) * step;
+        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += step) {
             if (Math.abs(gx) < 1e-12) continue; // skip origin
             int x = bounds.xToScreen(gx, width);
             g2.drawLine(x, yAxis - 5, x, yAxis + 5);
-            String label = formatTickLabel(gx, xStep);
+            String label = formatTickLabel(gx, step);
             g2.drawString(label, x - g2.getFontMetrics().stringWidth(label) / 2, yAxis + 20);
         }
         
         // Y-axis ticks
-        double startY = Math.floor(bounds.getMinY() / yStep) * yStep;
-        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += yStep) {
+        double startY = Math.floor(bounds.getMinY() / step) * step;
+        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += step) {
             if (Math.abs(gy) < 1e-12) continue; // skip origin
             int y = bounds.yToScreen(gy, height);
             g2.drawLine(xAxis - 5, y, xAxis + 5, y);
-            String label = formatTickLabel(gy, yStep);
+            String label = formatTickLabel(gy, step);
             g2.drawString(label, xAxis + 10, y + 5);
         }
     }
