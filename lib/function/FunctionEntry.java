@@ -1,14 +1,20 @@
 package lib.function;
+
+import lib.expression.ExpressionFormatter;
 import javax.swing.*;
 import java.awt.*;
-import java.util.regex.*;
-// JLaTeXMath is optional; use reflection so code compiles without the library
 
+/**
+ * Represents a single function entry in the function panel
+ * Now focused on UI state and event handling
+ */
 public class FunctionEntry extends JPanel {
+    
+    private final ExpressionFormatter formatter = new ExpressionFormatter();
     
     // UI Components
     private JTextField expressionField;
-    private JLabel latexLabel;
+    private JLabel displayLabel;
     private JCheckBox enableCheckbox;
     private JButton deleteButton;
     private JButton editButton;
@@ -19,25 +25,15 @@ public class FunctionEntry extends JPanel {
     private Color functionColor;
     private FunctionPanel parent;
     
-    // Constants
-    private static final int COLOR_INDICATOR_SIZE = 20;
-    private static final int ENTRY_HEIGHT = 80;
-    private static final int EDIT_BUTTON_WIDTH = 60;
-    private static final int DELETE_BUTTON_WIDTH = 40;
-    private static final int BUTTON_HEIGHT = 25;
-    private static final float LATEX_FONT_SIZE = 18f;
-    private static final int LATEX_ICON_MARGIN = 4;
-    private static final double EPSILON = 1e-8;
-    
-    // Card layout view names
+    // View modes
     private static final String VIEW_MODE = "view";
     private static final String EDIT_MODE = "edit";
     
     /**
-     * Constructor to create a function entry
-     * @param expression The initial expression
-     * @param color The color for this function
-     * @param parent The parent FunctionPanel
+     * Constructor
+     * @param expression Initial expression
+     * @param color Function color
+     * @param parent Parent panel
      */
     public FunctionEntry(String expression, Color color, FunctionPanel parent) {
         this.functionColor = color;
@@ -48,26 +44,76 @@ public class FunctionEntry extends JPanel {
     }
     
     /**
-     * Initialize GUI components
-     * @param expression The initial expression
+     * Initialize components
      */
     private void initComponents(String expression) {
         setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(Color.LIGHT_GRAY),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, ENTRY_HEIGHT));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
         
-        colorIndicator = new JPanel();
-        colorIndicator.setBackground(functionColor);
-        colorIndicator.setPreferredSize(new Dimension(COLOR_INDICATOR_SIZE, COLOR_INDICATOR_SIZE));
-        colorIndicator.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-        // Open a color chooser when the color indicator is clicked
-        colorIndicator.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        colorIndicator.addMouseListener(new java.awt.event.MouseAdapter() {
+        // Color indicator with click handler
+        colorIndicator = createColorIndicator();
+        
+        // Enable checkbox
+        enableCheckbox = new JCheckBox();
+        enableCheckbox.setSelected(true);
+        enableCheckbox.addActionListener(e -> parent.updateGraph());
+        
+        // Expression field (for editing)
+        expressionField = new JTextField(expression);
+        expressionField.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        expressionField.addActionListener(e -> commitEdit());
+        expressionField.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                commitEdit();
+            }
+        });
+        expressionField.getDocument().addDocumentListener(new SimpleDocumentListener() {
+            @Override
+            public void onChange() {
+                parent.updateGraph();
+            }
+        });
+        
+        // Display label (for viewing)
+        displayLabel = new JLabel();
+        displayLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        formatter.formatExpression(expression, displayLabel);
+        
+        // Buttons
+        editButton = new JButton("Edit");
+        editButton.setPreferredSize(new Dimension(60, 25));
+        editButton.addActionListener(e -> startEdit());
+        
+        deleteButton = new JButton("×");
+        deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
+        deleteButton.setPreferredSize(new Dimension(40, 25));
+        deleteButton.setFocusPainted(false);
+        deleteButton.addActionListener(e -> parent.removeFunction(this));
+    }
+    
+    /**
+     * Create color indicator panel
+     */
+    private JPanel createColorIndicator() {
+        JPanel panel = new JPanel();
+        panel.setBackground(functionColor);
+        panel.setPreferredSize(new Dimension(20, 20));
+        panel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        panel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Color picker on click
+        panel.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                Color chosen = JColorChooser.showDialog(FunctionEntry.this, "Choose Function Color", functionColor);
+                Color chosen = JColorChooser.showDialog(
+                    FunctionEntry.this, 
+                    "Choose Function Color", 
+                    functionColor
+                );
                 if (chosen != null) {
                     functionColor = chosen;
                     colorIndicator.setBackground(functionColor);
@@ -76,287 +122,57 @@ public class FunctionEntry extends JPanel {
             }
         });
         
-        enableCheckbox = new JCheckBox();
-        enableCheckbox.setSelected(true);
-        enableCheckbox.addActionListener(e -> parent.updateGraph());
-        
-        expressionField = new JTextField(expression);
-        expressionField.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        // latexLabel shows the expression in non-edit mode
-        latexLabel = new JLabel();
-        latexLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        latexLabel.setOpaque(false);
-        setLatexText(expression);
-
-        // listeners: when editing commits, update graph and label
-        expressionField.addActionListener(e -> commitEdit());
-        expressionField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { parent.updateGraph(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { parent.updateGraph(); }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { parent.updateGraph(); }
-        });
-        expressionField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                // commit edit on focus lost
-                commitEdit();
-            }
-        });
-
-        // Edit button toggles edit mode
-        editButton = new JButton("Edit");
-        editButton.setPreferredSize(new Dimension(EDIT_BUTTON_WIDTH, BUTTON_HEIGHT));
-        editButton.addActionListener(e -> startEdit());
-        
-        deleteButton = new JButton("×");
-        deleteButton.setFont(new Font("Arial", Font.BOLD, 16));
-        deleteButton.setPreferredSize(new Dimension(DELETE_BUTTON_WIDTH, BUTTON_HEIGHT));
-        deleteButton.setFocusPainted(false);
-        deleteButton.addActionListener(e -> parent.removeFunction(this));
+        return panel;
     }
     
     /**
-     * Layout the components in the entry
+     * Layout components
      */
     private void layoutComponents() {
         setLayout(new BorderLayout(5, 5));
         
-        // top panel: color indicator, enable checkbox, then edit/delete buttons
+        // Top panel
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         topPanel.add(colorIndicator);
         topPanel.add(enableCheckbox);
         topPanel.add(editButton);
         topPanel.add(deleteButton);
-
         add(topPanel, BorderLayout.NORTH);
-
-        // center panel holds either latexLabel (view mode) or expressionField (edit mode)
+        
+        // Center panel with card layout (view/edit modes)
         centerPanel = new JPanel(new CardLayout());
-        centerPanel.add(latexLabel, VIEW_MODE);
+        centerPanel.add(displayLabel, VIEW_MODE);
         centerPanel.add(expressionField, EDIT_MODE);
-        // start in view mode
         ((CardLayout) centerPanel.getLayout()).show(centerPanel, VIEW_MODE);
         add(centerPanel, BorderLayout.CENTER);
     }
-
+    
+    /**
+     * Switch to edit mode
+     */
     private void startEdit() {
         CardLayout cl = (CardLayout) centerPanel.getLayout();
         cl.show(centerPanel, EDIT_MODE);
         expressionField.requestFocusInWindow();
         expressionField.selectAll();
     }
-
+    
+    /**
+     * Commit edit and return to view mode
+     */
     private void commitEdit() {
         if (!expressionField.isVisible()) return;
-        // update label and hide editor
+        
         String newExpr = expressionField.getText();
-        setLatexText(newExpr);
+        formatter.formatExpression(newExpr, displayLabel);
+        
         CardLayout cl = (CardLayout) centerPanel.getLayout();
         cl.show(centerPanel, VIEW_MODE);
         parent.updateGraph();
     }
-
-    private void setLatexText(String expr) {
-        if (expr == null || expr.trim().isEmpty()) {
-            latexLabel.setText("<html><i>empty</i></html>");
-        } else {
-            try {
-                // Prepare a display-only expression: remove explicit '*' multiplication
-                // signs so the rendered label looks cleaner (e.g. show "2x" instead of "2*x").
-                // Do NOT modify the underlying expressionField text.
-                String displayExpr = expr.replace("*", "");
-                String latexExpr = mapFunctionsToLatex(displayExpr);
-
-                // Use reflection to avoid hard dependency at compile time
-                Class<?> formulaCls = Class.forName("org.scilab.forge.jlatexmath.TeXFormula");
-                Object formula = formulaCls.getConstructor(String.class).newInstance(latexExpr);
-                Class<?> consts = Class.forName("org.scilab.forge.jlatexmath.TeXConstants");
-                int styleDisplay = consts.getField("STYLE_DISPLAY").getInt(null);
-                java.lang.reflect.Method createIcon = formulaCls.getMethod("createTeXIcon", int.class, float.class);
-                Object icon = createIcon.invoke(formula, styleDisplay, LATEX_FONT_SIZE);
-                latexLabel.setText("");
-                latexLabel.setIcon((javax.swing.Icon) icon);
-                // reflectively retrieve icon size
-                int iw = (int) icon.getClass().getMethod("getIconWidth").invoke(icon);
-                int ih = (int) icon.getClass().getMethod("getIconHeight").invoke(icon);
-                latexLabel.setPreferredSize(new Dimension(iw, ih));
-            } catch (Throwable t) {
-                // Log the error so we can diagnose why reflection failed
-                System.err.println("JLaTeXMath render failed: " + t.getClass().getName() + ": " + t.getMessage());
-                t.printStackTrace(System.err);
-                // fallback: naive HTML rendering
-                latexLabel.setIcon(null);
-                String displayForHtml = mapFunctionsToHtml(expr.replace("*", ""));
-                String esc = escapeHtml(displayForHtml);
-                latexLabel.setText("<html><code>" + esc + "</code></html>");
-            }
-        }
-    }
-
-    // minimal HTML escaper to avoid external dependencies
-    private String escapeHtml(String s) {
-        if (s == null) return "";
-        StringBuilder out = new StringBuilder(Math.max(16, s.length()));
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            switch (c) {
-                case '&': out.append("&amp;"); break;
-                case '<': out.append("&lt;"); break;
-                case '>': out.append("&gt;"); break;
-                case '"': out.append("&quot;"); break;
-                case '\'': out.append("&#39;"); break;
-                default: out.append(c);
-            }
-        }
-        return out.toString();
-    }
-
-    // Convert common function names to LaTeX-like display form for label only
-    private String mapFunctionsToLatex(String s) {
-        if (s == null) return "";
-        String res = s;
-        // Normalize whitespace
-        res = res.replaceAll("\\s+", " ").trim();
-
-        // sqrt(...) -> \sqrt{...}
-        Pattern pSqrt = Pattern.compile("(?i)\\bsqrt\\s*\\(([^)]*)\\)");
-        Matcher m = pSqrt.matcher(res);
-        StringBuffer sb = new StringBuffer();
-        while (m.find()) {
-            String inner = m.group(1);
-            String repl = "\\sqrt{" + inner + "}"; // becomes \sqrt{...}
-            m.appendReplacement(sb, Matcher.quoteReplacement(repl));
-        }
-        m.appendTail(sb);
-        res = sb.toString();
-
-        // abs(...) -> \left| ... \right| (handle nested parentheses properly)
-        res = replaceAbsWith(res, true);
-
-        // trig and log functions: sin, cos, tan, log, ln -> \sin(...), etc.
-        String[] funcs = {"sin", "cos", "tan", "log", "ln"};
-        for (String f : funcs) {
-            Pattern p = Pattern.compile("(?i)\\b" + f + "\\s*\\(([^)]*)\\)");
-            m = p.matcher(res);
-            sb = new StringBuffer();
-            while (m.find()) {
-                String inner = m.group(1);
-                String repl = "\\" + f + "(" + inner + ")"; // e.g. \sin(x)
-                m.appendReplacement(sb, Matcher.quoteReplacement(repl));
-            }
-            m.appendTail(sb);
-            res = sb.toString();
-        }
-
-        return res;
-    }
-
-    // Provide an HTML-friendly display mapping for the fallback renderer
-    private String mapFunctionsToHtml(String s) {
-        if (s == null) return "";
-        String r = s.replaceAll("\\s+", " ").trim();
-        // sqrt(x) -> √(x)
-        r = r.replaceAll("(?i)\\bsqrt\\s*\\(([^)]*)\\)", "√($1)");
-    // abs(x) -> |x| (handle nested parentheses)
-    r = replaceAbsWith(r, false);
-        // leave trig/log names as-is but normalize spacing: sin(x)
-        r = r.replaceAll("(?i)\\bsin\\s*\\(([^)]*)\\)", "sin($1)");
-        r = r.replaceAll("(?i)\\bcos\\s*\\(([^)]*)\\)", "cos($1)");
-        r = r.replaceAll("(?i)\\btan\\s*\\(([^)]*)\\)", "tan($1)");
-        r = r.replaceAll("(?i)\\blog\\s*\\(([^)]*)\\)", "log($1)");
-        r = r.replaceAll("(?i)\\bln\\s*\\(([^)]*)\\)", "ln($1)");
-        return r;
-    }
-
-    // Replace abs(...) occurrences respecting nested parentheses.
-    // If latex==true, replace with \left|...\right|, else with |...| for HTML fallback.
-    private String replaceAbsWith(String input, boolean latex) {
-        StringBuilder out = new StringBuilder();
-        String s = input;
-        int i = 0;
-        while (i < s.length()) {
-            int idx = indexOfWordIgnoreCase(s, "abs", i);
-            if (idx == -1) {
-                out.append(s.substring(i));
-                break;
-            }
-            // append before abs
-            out.append(s.substring(i, idx));
-            int p = idx + 3; // position after 'abs'
-            // skip spaces
-            while (p < s.length() && Character.isWhitespace(s.charAt(p))) p++;
-            if (p >= s.length() || s.charAt(p) != '(') {
-                // not a function call, copy 'abs' literally
-                out.append(s.substring(idx, p));
-                i = p;
-                continue;
-            }
-            // find matching closing parenthesis
-            int start = p + 1;
-            int depth = 1;
-            int j = start;
-            for (; j < s.length(); j++) {
-                char c = s.charAt(j);
-                if (c == '(') depth++;
-                else if (c == ')') {
-                    depth--;
-                    if (depth == 0) break;
-                }
-            }
-            if (j >= s.length() || depth != 0) {
-                // unmatched, just copy rest and stop
-                out.append(s.substring(idx));
-                break;
-            }
-            String inner = s.substring(start, j);
-            if (latex) {
-                out.append("\\left|").append(inner).append("\\right|");
-            } else {
-                out.append("|").append(inner).append("|");
-            }
-            i = j + 1;
-        }
-        return out.toString();
-    }
-
-    // helper: find word 'word' case-insensitive starting from fromIndex where word boundary required
-    private int indexOfWordIgnoreCase(String s, String word, int fromIndex) {
-        String lower = s.toLowerCase();
-        String w = word.toLowerCase();
-        int idx = lower.indexOf(w, fromIndex);
-        while (idx != -1) {
-            boolean leftOk = idx == 0 || !Character.isLetterOrDigit(lower.charAt(idx - 1));
-            int after = idx + w.length();
-            boolean rightOk = after >= lower.length() || !Character.isLetterOrDigit(lower.charAt(after));
-            if (leftOk && rightOk) return idx;
-            idx = lower.indexOf(w, idx + 1);
-        }
-        return -1;
-    }
-
     
-    
-    /**
-     * Get the expression from this entry
-     * @return The expression string
-     */
-    public String getExpression() {
-        return expressionField.getText();
-    }
-    
-    /**
-     * Get the color for this function
-     * @return The color
-     */
-    public Color getColor() {
-        return functionColor;
-    }
-    
-    /**
-     * Check if this function is enabled
-     * @return true if enabled, false otherwise
-     */
-    public boolean isEnabled() {
-        return enableCheckbox.isSelected();
-    }
+    // Getters
+    public String getExpression() { return expressionField.getText(); }
+    public Color getColor() { return functionColor; }
+    public boolean isEnabled() { return enableCheckbox.isSelected(); }
 }

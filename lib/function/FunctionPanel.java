@@ -1,57 +1,57 @@
 package lib.function;
-import javax.swing.*;
 
 import lib.graph.GraphPanel;
-
+import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Panel for managing function entries
+ * Now uses FunctionColorManager for color management
+ */
 public class FunctionPanel extends JPanel {
     
-    private GraphPanel graphPanel;
-    private List<FunctionEntry> functionEntries;
-    private java.util.Map<String, String> namedFunctions = new java.util.HashMap<>();
-    private JPanel entriesPanel;
-    private JButton addButton;
+    private final GraphPanel graphPanel;
+    private final List<FunctionEntry> functionEntries;
+    private final FunctionColorManager colorManager;
+    private final JPanel entriesPanel;
+    private final JButton addButton;
     
-    private static final Color[] FUNCTION_COLORS = {
-        Color.BLUE, Color.RED, Color.GREEN, Color.ORANGE, 
-        Color.MAGENTA, Color.CYAN, new Color(139, 69, 19),
-        new Color(128, 0, 128)
-    };
+    private java.util.Map<String, String> namedFunctions = new java.util.HashMap<>();
     
     /**
-     * Constructor to set up the function panel
-     * @param graphPanel The graph panel to update when functions change
+     * Constructor
+     * @param graphPanel Graph panel to update
      */
     public FunctionPanel(GraphPanel graphPanel) {
         this.graphPanel = graphPanel;
         this.functionEntries = new ArrayList<>();
+        this.colorManager = new FunctionColorManager();
+        this.entriesPanel = new JPanel();
+        this.addButton = new JButton("+ Add Function");
         
         initComponents();
         layoutComponents();
         
-    // Add a default named function
-    addFunction("f(x)=x^2");
+        // Add default function
+        addFunction("f(x)=x^2");
     }
     
     /**
-     * Initialize GUI components
+     * Initialize components
      */
     private void initComponents() {
         setPreferredSize(new Dimension(280, 0));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        entriesPanel = new JPanel();
         entriesPanel.setLayout(new BoxLayout(entriesPanel, BoxLayout.Y_AXIS));
         
-        addButton = new JButton("+ Add Function");
         addButton.addActionListener(e -> addFunction(""));
     }
     
     /**
-     * Layout the components in the panel
+     * Layout components
      */
     private void layoutComponents() {
         setLayout(new BorderLayout(0, 10));
@@ -68,11 +68,10 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Add a new function to the list
-     * @param expression The initial expression for the function
+     * Add a new function
      */
     public void addFunction(String expression) {
-        Color color = FUNCTION_COLORS[functionEntries.size() % FUNCTION_COLORS.length];
+        Color color = colorManager.getNextColor();
         FunctionEntry entry = new FunctionEntry(expression, color, this);
         
         functionEntries.add(entry);
@@ -85,14 +84,13 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Remove a function from the list
-     * @param entry The function entry to remove
+     * Remove a function
      */
     public void removeFunction(FunctionEntry entry) {
         functionEntries.remove(entry);
         entriesPanel.remove(entry);
         
-        // Remove the spacing component after this entry
+        // Remove spacing after this entry
         Component[] components = entriesPanel.getComponents();
         for (int i = 0; i < components.length; i++) {
             if (components[i] == entry && i + 1 < components.length) {
@@ -107,20 +105,17 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Update the graph with all current functions
+     * Update graph with all current functions
      */
     public void updateGraph() {
-        // Use FunctionParser to parse all entries
         FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries);
         
         namedFunctions = result.getNamedFunctions();
-        
-        // Provide named functions to the graph panel so evaluator can resolve them
         graphPanel.setUserFunctions(namedFunctions);
         graphPanel.setFunctions(result.getGraphFunctions());
         graphPanel.repaint();
     }
-
+    
     public java.util.Map<String, String> getNamedFunctions() {
         return namedFunctions;
     }

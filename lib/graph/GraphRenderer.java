@@ -1,244 +1,104 @@
 package lib.graph;
 
 import lib.expression.ExpressionEvaluator;
+import lib.graph.rendering.*;
 import java.awt.*;
-import java.awt.geom.*;
+import java.awt.geom.Point2D;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.*;
 
 /**
- * Handles all rendering operations for the graph including grid, axes,
- * functions, and intersection points.
+ * Main coordinator for graph rendering
+ * Now delegates to specialized renderers
  */
 public class GraphRenderer {
     
     private static final int INTERSECTION_POINT_RADIUS = 4;
-    private static final double DEFAULT_VIEW_RANGE = 20.0;
-    private static final int ADAPTIVE_SAMPLE_MIN = 50;
-    private static final int ADAPTIVE_SAMPLE_MAX = 5000;
     
-    private final ExpressionEvaluator evaluator;
+    private final GridRenderer gridRenderer;
+    private final AxisRenderer axisRenderer;
+    private final FunctionPlotter functionPlotter;
     private final IntersectionFinder intersectionFinder;
     private final GraphBounds bounds;
+    
     private Map<String, List<Point2D.Double>> namedIntersectionPoints;
     
     /**
      * Create a graph renderer
-     * @param evaluator Expression evaluator
-     * @param intersectionFinder Intersection finder
-     * @param bounds Graph bounds
      */
-    public GraphRenderer(ExpressionEvaluator evaluator, IntersectionFinder intersectionFinder, 
+    public GraphRenderer(ExpressionEvaluator evaluator, IntersectionFinder intersectionFinder,
                         GraphBounds bounds) {
-        this.evaluator = evaluator;
-        this.intersectionFinder = intersectionFinder;
         this.bounds = bounds;
+        this.intersectionFinder = intersectionFinder;
+        
+        // Create specialized renderers
+        this.gridRenderer = new GridRenderer();
+        this.axisRenderer = new AxisRenderer();
+        this.functionPlotter = new FunctionPlotter(evaluator, bounds);
     }
     
     /**
-     * Set the named intersection points cache
-     * @param namedIntersectionPoints Map of function names to intersection points
+     * Set named intersection points cache
      */
-    public void setNamedIntersectionPoints(Map<String, List<Point2D.Double>> namedIntersectionPoints) {
-        this.namedIntersectionPoints = namedIntersectionPoints;
+    public void setNamedIntersectionPoints(Map<String, List<Point2D.Double>> points) {
+        this.namedIntersectionPoints = points;
     }
     
     /**
-     * Draw the complete graph
-     * @param g2 Graphics context
-     * @param functions List of functions to draw
-     * @param width Panel width
-     * @param height Panel height
+     * Main render method - coordinates all rendering
      */
     public void render(Graphics2D g2, List<GraphFunction> functions, int width, int height) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        drawGrid(g2, width, height);
-        drawAxes(g2, width, height);
+        // Delegate to specialized renderers
+        gridRenderer.drawGrid(g2, bounds, width, height);
+        axisRenderer.drawAxes(g2, bounds, width, height);
         drawFunctions(g2, functions, width, height);
         drawIntersections(g2, functions, width, height);
     }
     
     /**
-     * Draw the grid lines on the graph
-     * @param g2 The Graphics2D object
-     * @param width Panel width
-     * @param height Panel height
+     * Draw all functions
      */
-    public void drawGrid(Graphics2D g2, int width, int height) {
-        // Compute nice tick spacing based on view range
-        // Use the same step for both X and Y to maintain square grid cells
-        double xRange = bounds.getRangeX();
-        double yRange = bounds.getRangeY();
-        double maxRange = Math.max(xRange, yRange);
-        double step = niceStep(maxRange, 8);  // Single step for both axes to ensure square grid
-        
-        // Calculate main grid cell size in pixels
-        double unitsPerPixel = maxRange / Math.max(width, height);
-        double pixelsPerGridCell = step / unitsPerPixel;
-        
-        // Only draw sub-grid if main grid cells are large enough (at least 50 pixels)
-        final int MIN_PIXELS_FOR_SUBGRID = 50;
-        boolean drawSubGrid = pixelsPerGridCell >= MIN_PIXELS_FOR_SUBGRID;
-        
-        if (drawSubGrid) {
-            // Draw sub-grid (5x subdivisions) with lighter color
-            g2.setColor(new Color(240, 240, 240));  // Very light grey for sub-grid
-            g2.setStroke(new BasicStroke(1));
-            
-            double subStep = step / 5.0;
-            
-            // Vertical sub-grid lines
-            double startSubX = Math.floor(bounds.getMinX() / subStep) * subStep;
-            for (double gx = startSubX; gx <= bounds.getMaxX() + 1e-12; gx += subStep) {
-                // Skip if this is a main grid line
-                if (Math.abs(gx % step) > 1e-10) {
-                    int x = bounds.xToScreen(gx, width);
-                    g2.drawLine(x, 0, x, height);
-                }
-            }
-            
-            // Horizontal sub-grid lines
-            double startSubY = Math.floor(bounds.getMinY() / subStep) * subStep;
-            for (double gy = startSubY; gy <= bounds.getMaxY() + 1e-12; gy += subStep) {
-                // Skip if this is a main grid line
-                if (Math.abs(gy % step) > 1e-10) {
-                    int y = bounds.yToScreen(gy, height);
-                    g2.drawLine(0, y, width, y);
-                }
-            }
-        }
-        
-        // Draw main grid with medium grey
-        g2.setColor(new Color(200, 200, 200));  // Medium grey for main grid
-        g2.setStroke(new BasicStroke(1));
-        
-        // Vertical main grid lines
-        double startX = Math.floor(bounds.getMinX() / step) * step;
-        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += step) {
-            int x = bounds.xToScreen(gx, width);
-            g2.drawLine(x, 0, x, height);
-        }
-        
-        // Horizontal main grid lines
-        double startY = Math.floor(bounds.getMinY() / step) * step;
-        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += step) {
-            int y = bounds.yToScreen(gy, height);
-            g2.drawLine(0, y, width, y);
-        }
-    }
-    
-    /**
-     * Draw the X and Y axes on the graph
-     * @param g2 The Graphics2D object
-     * @param width Panel width
-     * @param height Panel height
-     */
-    public void drawAxes(Graphics2D g2, int width, int height) {
-        g2.setColor(Color.BLACK);
-        g2.setStroke(new BasicStroke(2));
-        
-        // X-axis
-        int yAxis = bounds.yToScreen(0, height);
-        g2.drawLine(0, yAxis, width, yAxis);
-        
-        // Y-axis
-        int xAxis = bounds.xToScreen(0, width);
-        g2.drawLine(xAxis, 0, xAxis, height);
-        
-        // Draw tick marks and labels
-        g2.setFont(new Font("Arial", Font.PLAIN, 10));
-        double xRange = bounds.getRangeX();
-        double yRange = bounds.getRangeY();
-        double maxRange = Math.max(xRange, yRange);
-        double step = niceStep(maxRange, 8);  // Same step for both axes to ensure square grid
-        
-        // X-axis ticks
-        double startX = Math.floor(bounds.getMinX() / step) * step;
-        for (double gx = startX; gx <= bounds.getMaxX() + 1e-12; gx += step) {
-            if (Math.abs(gx) < 1e-12) continue; // skip origin
-            int x = bounds.xToScreen(gx, width);
-            g2.drawLine(x, yAxis - 5, x, yAxis + 5);
-            String label = formatTickLabel(gx, step);
-            g2.drawString(label, x - g2.getFontMetrics().stringWidth(label) / 2, yAxis + 20);
-        }
-        
-        // Y-axis ticks
-        double startY = Math.floor(bounds.getMinY() / step) * step;
-        for (double gy = startY; gy <= bounds.getMaxY() + 1e-12; gy += step) {
-            if (Math.abs(gy) < 1e-12) continue; // skip origin
-            int y = bounds.yToScreen(gy, height);
-            g2.drawLine(xAxis - 5, y, xAxis + 5, y);
-            String label = formatTickLabel(gy, step);
-            g2.drawString(label, xAxis + 10, y + 5);
-        }
-    }
-    
-    /**
-     * Draw all functions on the graph
-     * @param g2 The Graphics2D object
-     * @param functions List of functions to draw
-     * @param width Panel width
-     * @param height Panel height
-     */
-    public void drawFunctions(Graphics2D g2, List<GraphFunction> functions, int width, int height) {
+    private void drawFunctions(Graphics2D g2, List<GraphFunction> functions, 
+                               int width, int height) {
         for (GraphFunction function : functions) {
             if (!function.isIntersection()) {
-                drawFunction(g2, function, width, height);
+                String expr = function.getExpression();
+                Color color = function.getColor();
+                
+                // Check if this is a named intersection reference
+                if (expr != null && namedIntersectionPoints != null) {
+                    if (tryDrawNamedIntersection(g2, expr, color, width, height)) {
+                        continue;
+                    }
+                }
+                
+                // Draw regular function
+                functionPlotter.plotFunction(g2, expr, color, width, height);
             }
         }
-    }
-    
-    /**
-     * Draw a single function on the graph
-     * @param g2 The Graphics2D object
-     * @param function The function to draw
-     * @param width Panel width
-     * @param height Panel height
-     */
-    public void drawFunction(Graphics2D g2, GraphFunction function, int width, int height) {
-        g2.setColor(function.getColor());
-        g2.setStroke(new BasicStroke(2));
-        
-        Path2D path = new Path2D.Double();
-        
-        // Check if this function references a named intersection
-        String expr = function.getExpression();
-        if (expr != null && namedIntersectionPoints != null) {
-            if (tryDrawNamedIntersection(g2, path, expr, width, height)) {
-                return;
-            }
-        }
-        
-        // Draw regular function
-        drawRegularFunction(g2, path, function, width, height);
     }
     
     /**
      * Try to draw a named intersection function
-     * @return true if successfully drawn as named intersection
      */
-    private boolean tryDrawNamedIntersection(Graphics2D g2, Path2D path, String expr, 
-                                             int width, int height) {
-        // Patterns: name(x), name(x)-C (vertical shift), name(x-C) (horizontal shift)
-        Pattern p1 = Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*\\)\\s*([+-]\\s*\\d+(?:\\.\\d+)?)?\\s*$");
-        Pattern p2 = Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*([+-]\\s*\\d+(?:\\.\\d+)?)\\)\\s*$");
+    private boolean tryDrawNamedIntersection(Graphics2D g2, String expr, Color color,
+                                            int width, int height) {
+        // Check for patterns like: name(x), name(x)+C, name(x-C)
+        java.util.regex.Pattern p1 = java.util.regex.Pattern.compile(
+            "^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*\\)\\s*([+-]\\s*\\d+(?:\\.\\d+)?)?\\s*$"
+        );
+        java.util.regex.Matcher m = p1.matcher(expr);
         
-        Matcher m1 = p1.matcher(expr);
-        Matcher m2 = p2.matcher(expr);
-        
-        if (m1.matches() || m2.matches()) {
-            String name = m1.matches() ? m1.group(1) : m2.group(1);
-            String vShiftStr = m1.matches() ? m1.group(2) : null;
-            String hShiftStr = m2.matches() ? m2.group(2) : null;
+        if (m.matches()) {
+            String name = m.group(1);
+            String shiftStr = m.group(2);
             
-            if (name != null) {
-                List<Point2D.Double> pts = namedIntersectionPoints.get(name.toLowerCase());
-                if (pts != null) {
-                    drawTransformedPoints(g2, path, pts, vShiftStr, hShiftStr, width, height);
-                    return true;
-                }
+            List<Point2D.Double> points = namedIntersectionPoints.get(name.toLowerCase());
+            if (points != null) {
+                drawTransformedPoints(g2, points, shiftStr, color, width, height);
+                return true;
             }
         }
         
@@ -248,27 +108,26 @@ public class GraphRenderer {
     /**
      * Draw transformed intersection points
      */
-    private void drawTransformedPoints(Graphics2D g2, Path2D path, List<Point2D.Double> pts,
-                                       String vShiftStr, String hShiftStr, int width, int height) {
-        double vShift = 0.0;
-        double hShift = 0.0;
-        
-        if (vShiftStr != null) {
-            vShift = Double.parseDouble(vShiftStr.replaceAll("\\s+", ""));
-        }
-        if (hShiftStr != null) {
-            hShift = Double.parseDouble(hShiftStr.replaceAll("\\s+", ""));
+    private void drawTransformedPoints(Graphics2D g2, List<Point2D.Double> points,
+                                      String shiftStr, Color color, int width, int height) {
+        double shift = 0.0;
+        if (shiftStr != null) {
+            shift = Double.parseDouble(shiftStr.replaceAll("\\s+", ""));
         }
         
-        // Sort points by x and draw polyline
-        List<Point2D.Double> copy = new java.util.ArrayList<>(pts);
-        copy.sort((a, b) -> Double.compare(a.x, b.x));
+        g2.setColor(color);
+        g2.setStroke(new BasicStroke(2));
         
+        // Sort and draw
+        List<Point2D.Double> sorted = new java.util.ArrayList<>(points);
+        sorted.sort((a, b) -> Double.compare(a.x, b.x));
+        
+        java.awt.geom.Path2D path = new java.awt.geom.Path2D.Double();
         boolean first = true;
-        for (Point2D.Double p : copy) {
-            double tx = p.x + hShift;
-            double ty = p.y + vShift;
-            int sx = bounds.xToScreen(tx, width);
+        
+        for (Point2D.Double p : sorted) {
+            double ty = p.y + shift;
+            int sx = bounds.xToScreen(p.x, width);
             int sy = bounds.yToScreen(ty, height);
             
             if (first) {
@@ -283,109 +142,30 @@ public class GraphRenderer {
     }
     
     /**
-     * Draw a regular mathematical function
+     * Draw intersection points
      */
-    private void drawRegularFunction(Graphics2D g2, Path2D path, GraphFunction function,
-                                     int width, int height) {
-        int sampleCount = calculateAdaptiveSamples(width);
-        double step = (double) width / (double) sampleCount;
-        boolean firstPoint = true;
-        
-        for (double sx = 0.0; sx < width; sx += step) {
-            int screenX = (int) Math.round(sx);
-            double x = bounds.screenToX(screenX, width);
-            
-            try {
-                double y = evaluator.evaluate(function.getExpression(), x);
-                
-                if (!Double.isNaN(y) && !Double.isInfinite(y)) {
-                    int screenY = bounds.yToScreen(y, height);
-                    
-                    if (firstPoint) {
-                        path.moveTo(screenX, screenY);
-                        firstPoint = false;
-                    } else {
-                        path.lineTo(screenX, screenY);
-                    }
-                }
-            } catch (Exception e) {
-                firstPoint = true;
-            }
-        }
-        
-        g2.draw(path);
-    }
-    
-    /**
-     * Draw intersection points for intersection functions
-     * @param g2 Graphics context
-     * @param functions List of functions
-     * @param width Panel width
-     * @param height Panel height
-     */
-    public void drawIntersections(Graphics2D g2, List<GraphFunction> functions, 
-                                  int width, int height) {
+    private void drawIntersections(Graphics2D g2, List<GraphFunction> functions,
+                                   int width, int height) {
         for (GraphFunction gf : functions) {
             if (!gf.isIntersection()) continue;
             
             g2.setColor(gf.getColor());
             
             List<Point2D.Double> intersections = intersectionFinder.findIntersections(
-                gf.getLhsExpr(), gf.getRhsExpr(), 
+                gf.getLhsExpr(), gf.getRhsExpr(),
                 bounds.getMinX(), bounds.getMaxX(), width
             );
             
             for (Point2D.Double point : intersections) {
                 int sx = bounds.xToScreen(point.x, width);
                 int sy = bounds.yToScreen(point.y, height);
-                g2.fillOval(sx - INTERSECTION_POINT_RADIUS, sy - INTERSECTION_POINT_RADIUS,
-                           INTERSECTION_POINT_RADIUS * 2, INTERSECTION_POINT_RADIUS * 2);
+                g2.fillOval(
+                    sx - INTERSECTION_POINT_RADIUS,
+                    sy - INTERSECTION_POINT_RADIUS,
+                    INTERSECTION_POINT_RADIUS * 2,
+                    INTERSECTION_POINT_RADIUS * 2
+                );
             }
-        }
-    }
-    
-    /**
-     * Calculate adaptive sample count based on zoom level
-     */
-    private int calculateAdaptiveSamples(int pixelWidth) {
-        double viewRangeX = bounds.getRangeX();
-        double baseSamples = pixelWidth;
-        double referenceRange = DEFAULT_VIEW_RANGE;
-        double zoomMultiplier = Math.max(1.0, referenceRange / viewRangeX);
-        zoomMultiplier = Math.min(10.0, zoomMultiplier);
-        
-        int sampleCount = (int) Math.round(baseSamples * zoomMultiplier);
-        return Math.max(ADAPTIVE_SAMPLE_MIN, Math.min(ADAPTIVE_SAMPLE_MAX, sampleCount));
-    }
-    
-    /**
-     * Compute a "nice" step for ticks
-     */
-    private double niceStep(double range, int targetTicks) {
-        if (range <= 0) return 1.0;
-        double rawStep = range / Math.max(1, targetTicks);
-        double exp = Math.floor(Math.log10(rawStep));
-        double base = Math.pow(10, exp);
-        double fraction = rawStep / base;
-        double niceFraction;
-        if (fraction <= 1.0) niceFraction = 1.0;
-        else if (fraction <= 2.0) niceFraction = 2.0;
-        else if (fraction <= 5.0) niceFraction = 5.0;
-        else niceFraction = 10.0;
-        return niceFraction * base;
-    }
-    
-    /**
-     * Format tick label
-     */
-    private String formatTickLabel(double value, double step) {
-        double absStep = Math.abs(step);
-        if (absStep >= 1.0) {
-            long v = Math.round(value);
-            return String.valueOf(v);
-        } else {
-            int prec = (int) Math.max(0, Math.min(6, -Math.floor(Math.log10(absStep)) + 1));
-            return String.format(java.util.Locale.US, "%." + prec + "f", value);
         }
     }
 }
