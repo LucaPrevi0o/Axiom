@@ -36,11 +36,48 @@ JAVA_OUT_DIR="$ROOT_DIR/java"
 JAR_NAME="axiom.jar"
 MAIN_CLASS="Axiom"
 
+# Collect library jars (if any) under lib/
+LIB_DIR="$ROOT_DIR/lib"
+CLASSPATH_JARS=""
+if [ -d "$LIB_DIR" ]; then
+  # build colon-separated classpath of jars (only jars directly in lib/)
+  jars=$(find "$LIB_DIR" -maxdepth 1 -name "*.jar" 2>/dev/null | sort)
+  if [ -n "$jars" ]; then
+    CLASSPATH_JARS=$(echo "$jars" | tr '\n' ':')
+    # remove trailing colon
+    CLASSPATH_JARS=${CLASSPATH_JARS%:}
+  fi
+fi
+
 compile() {
   echo "Compiling Java sources..."
   mkdir -p "$JAVA_OUT_DIR"
-  # find and compile all java files
-  javac -d "$JAVA_OUT_DIR" $(find "$ROOT_DIR" -name "*.java")
+  # collect project java files (excluding build dir)
+  proj_srcs=$(find "$ROOT_DIR" -maxdepth 2 -name "*.java" -not -path "$JAVA_OUT_DIR/*")
+  # collect lib module main sources (lib/*/src/main/java)
+  lib_srcs=""
+  if [ -d "$LIB_DIR" ]; then
+    for m in "$LIB_DIR"/*; do
+      if [ -d "$m/src/main/java" ]; then
+        if [ -z "$lib_srcs" ]; then
+          lib_srcs=$(find "$m/src/main/java" -name "*.java")
+        else
+          lib_srcs="$lib_srcs $(find "$m/src/main/java" -name "*.java")"
+        fi
+      fi
+    done
+  fi
+
+  srcs="$proj_srcs $lib_srcs"
+  if [ -z "$srcs" ]; then
+    echo "No Java sources found."
+    return
+  fi
+  if [ -n "$CLASSPATH_JARS" ]; then
+    javac -cp "$CLASSPATH_JARS" -d "$JAVA_OUT_DIR" $srcs
+  else
+    javac -d "$JAVA_OUT_DIR" $srcs
+  fi
   echo "Compiled to $JAVA_OUT_DIR"
 }
 
@@ -48,14 +85,31 @@ build_jar() {
   compile
   echo "Building $JAR_NAME (Main-Class: $MAIN_CLASS)..."
   # create manifest on the fly and package
-  jar --create --file "$ROOT_DIR/$JAR_NAME" --manifest <(printf "Main-Class: %s\n" "$MAIN_CLASS") -C "$JAVA_OUT_DIR" .
+  # If there are lib jars, add a Class-Path entry so they can be found next to the jar
+  if [ -n "$CLASSPATH_JARS" ]; then
+    # Build space-separated relative paths for Class-Path (relative to jar location)
+    classpath_entry=""
+    for j in $(echo "$CLASSPATH_JARS" | tr ':' '\n'); do
+      # use relative path from jar: lib/<basename>
+      base=$(basename "$j")
+      classpath_entry="$classpath_entry lib/$base"
+    done
+    printf "Class-Path:%s\nMain-Class: %s\n" "$classpath_entry" "$MAIN_CLASS" > "$JAVA_OUT_DIR/manifest.mf"
+    jar --create --file "$ROOT_DIR/$JAR_NAME" --manifest "$JAVA_OUT_DIR/manifest.mf" -C "$JAVA_OUT_DIR" .
+  else
+    jar --create --file "$ROOT_DIR/$JAR_NAME" --manifest <(printf "Main-Class: %s\n" "$MAIN_CLASS") -C "$JAVA_OUT_DIR" .
+  fi
   echo "Created $JAR_NAME"
 }
 
 run_main() {
   compile
   echo "Running $MAIN_CLASS..."
-  java -cp "$JAVA_OUT_DIR" "$MAIN_CLASS"
+  if [ -n "$CLASSPATH_JARS" ]; then
+    java -cp "$JAVA_OUT_DIR:$CLASSPATH_JARS" "$MAIN_CLASS"
+  else
+    java -cp "$JAVA_OUT_DIR" "$MAIN_CLASS"
+  fi
 }
 
 clean() {

@@ -1,6 +1,7 @@
 package function;
 import javax.swing.*;
 import java.awt.*;
+// JLaTeXMath is optional; use reflection so code compiles without the library
 
 public class FunctionEntry extends JPanel {
     
@@ -102,25 +103,22 @@ public class FunctionEntry extends JPanel {
     private void layoutComponents() {
         setLayout(new BorderLayout(5, 5));
         
+        // top panel: color indicator, enable checkbox, then edit/delete buttons
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         topPanel.add(colorIndicator);
         topPanel.add(enableCheckbox);
+        topPanel.add(editButton);
+        topPanel.add(deleteButton);
 
         add(topPanel, BorderLayout.NORTH);
 
-    // center panel holds either latexLabel (view mode) or expressionField (edit mode)
-    centerPanel = new JPanel(new CardLayout());
-    centerPanel.add(latexLabel, "view");
-    centerPanel.add(expressionField, "edit");
-    // start in view mode
-    ((CardLayout) centerPanel.getLayout()).show(centerPanel, "view");
-    add(centerPanel, BorderLayout.CENTER);
-
-        // right-side panel: edit + delete
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
-        rightPanel.add(editButton);
-        rightPanel.add(deleteButton);
-        add(rightPanel, BorderLayout.EAST);
+        // center panel holds either latexLabel (view mode) or expressionField (edit mode)
+        centerPanel = new JPanel(new CardLayout());
+        centerPanel.add(latexLabel, "view");
+        centerPanel.add(expressionField, "edit");
+        // start in view mode
+        ((CardLayout) centerPanel.getLayout()).show(centerPanel, "view");
+        add(centerPanel, BorderLayout.CENTER);
     }
 
     private void startEdit() {
@@ -144,9 +142,35 @@ public class FunctionEntry extends JPanel {
         if (expr == null || expr.trim().isEmpty()) {
             latexLabel.setText("<html><i>empty</i></html>");
         } else {
-            // naive latex-like rendering using HTML; real LaTeX requires a library
-            String esc = escapeHtml(expr);
-            latexLabel.setText("<html><code>" + esc + "</code></html>");
+            try {
+                // Prepare a display-only expression: remove explicit '*' multiplication
+                // signs so the rendered label looks cleaner (e.g. show "2x" instead of "2*x").
+                // Do NOT modify the underlying expressionField text.
+                String displayExpr = expr.replace("*", "");
+
+                // Use reflection to avoid hard dependency at compile time
+                Class<?> formulaCls = Class.forName("org.scilab.forge.jlatexmath.TeXFormula");
+                Object formula = formulaCls.getConstructor(String.class).newInstance(displayExpr);
+                Class<?> consts = Class.forName("org.scilab.forge.jlatexmath.TeXConstants");
+                int styleDisplay = consts.getField("STYLE_DISPLAY").getInt(null);
+                java.lang.reflect.Method createIcon = formulaCls.getMethod("createTeXIcon", int.class, float.class);
+                Object icon = createIcon.invoke(formula, styleDisplay, 18f);
+                latexLabel.setText("");
+                latexLabel.setIcon((javax.swing.Icon) icon);
+                // reflectively retrieve icon size
+                int iw = (int) icon.getClass().getMethod("getIconWidth").invoke(icon);
+                int ih = (int) icon.getClass().getMethod("getIconHeight").invoke(icon);
+                latexLabel.setPreferredSize(new Dimension(iw, ih));
+            } catch (Throwable t) {
+                // Log the error so we can diagnose why reflection failed
+                System.err.println("JLaTeXMath render failed: " + t.getClass().getName() + ": " + t.getMessage());
+                t.printStackTrace(System.err);
+                // fallback: naive HTML rendering
+                latexLabel.setIcon(null);
+                String displayExpr = expr.replace("*", "");
+                String esc = escapeHtml(displayExpr);
+                latexLabel.setText("<html><code>" + esc + "</code></html>");
+            }
         }
     }
 
