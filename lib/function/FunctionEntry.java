@@ -1,6 +1,7 @@
 package lib.function;
 import javax.swing.*;
 import java.awt.*;
+import java.util.regex.*;
 // JLaTeXMath is optional; use reflection so code compiles without the library
 
 public class FunctionEntry extends JPanel {
@@ -147,10 +148,11 @@ public class FunctionEntry extends JPanel {
                 // signs so the rendered label looks cleaner (e.g. show "2x" instead of "2*x").
                 // Do NOT modify the underlying expressionField text.
                 String displayExpr = expr.replace("*", "");
+                String latexExpr = mapFunctionsToLatex(displayExpr);
 
                 // Use reflection to avoid hard dependency at compile time
                 Class<?> formulaCls = Class.forName("org.scilab.forge.jlatexmath.TeXFormula");
-                Object formula = formulaCls.getConstructor(String.class).newInstance(displayExpr);
+                Object formula = formulaCls.getConstructor(String.class).newInstance(latexExpr);
                 Class<?> consts = Class.forName("org.scilab.forge.jlatexmath.TeXConstants");
                 int styleDisplay = consts.getField("STYLE_DISPLAY").getInt(null);
                 java.lang.reflect.Method createIcon = formulaCls.getMethod("createTeXIcon", int.class, float.class);
@@ -167,8 +169,8 @@ public class FunctionEntry extends JPanel {
                 t.printStackTrace(System.err);
                 // fallback: naive HTML rendering
                 latexLabel.setIcon(null);
-                String displayExpr = expr.replace("*", "");
-                String esc = escapeHtml(displayExpr);
+                String displayForHtml = mapFunctionsToHtml(expr.replace("*", ""));
+                String esc = escapeHtml(displayForHtml);
                 latexLabel.setText("<html><code>" + esc + "</code></html>");
             }
         }
@@ -190,6 +192,129 @@ public class FunctionEntry extends JPanel {
             }
         }
         return out.toString();
+    }
+
+    // Convert common function names to LaTeX-like display form for label only
+    private String mapFunctionsToLatex(String s) {
+        if (s == null) return "";
+        String res = s;
+        // Normalize whitespace
+        res = res.replaceAll("\\s+", " ").trim();
+
+        // sqrt(...) -> \sqrt{...}
+        Pattern pSqrt = Pattern.compile("(?i)\\bsqrt\\s*\\(([^)]*)\\)");
+        Matcher m = pSqrt.matcher(res);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String inner = m.group(1);
+            String repl = "\\sqrt{" + inner + "}"; // becomes \sqrt{...}
+            m.appendReplacement(sb, Matcher.quoteReplacement(repl));
+        }
+        m.appendTail(sb);
+        res = sb.toString();
+
+        // abs(...) -> \left| ... \right| (handle nested parentheses properly)
+        res = replaceAbsWith(res, true);
+
+        // trig and log functions: sin, cos, tan, log, ln -> \sin(...), etc.
+        String[] funcs = {"sin", "cos", "tan", "log", "ln"};
+        for (String f : funcs) {
+            Pattern p = Pattern.compile("(?i)\\b" + f + "\\s*\\(([^)]*)\\)");
+            m = p.matcher(res);
+            sb = new StringBuffer();
+            while (m.find()) {
+                String inner = m.group(1);
+                String repl = "\\" + f + "(" + inner + ")"; // e.g. \sin(x)
+                m.appendReplacement(sb, Matcher.quoteReplacement(repl));
+            }
+            m.appendTail(sb);
+            res = sb.toString();
+        }
+
+        return res;
+    }
+
+    // Provide an HTML-friendly display mapping for the fallback renderer
+    private String mapFunctionsToHtml(String s) {
+        if (s == null) return "";
+        String r = s.replaceAll("\\s+", " ").trim();
+        // sqrt(x) -> √(x)
+        r = r.replaceAll("(?i)\\bsqrt\\s*\\(([^)]*)\\)", "√($1)");
+    // abs(x) -> |x| (handle nested parentheses)
+    r = replaceAbsWith(r, false);
+        // leave trig/log names as-is but normalize spacing: sin(x)
+        r = r.replaceAll("(?i)\\bsin\\s*\\(([^)]*)\\)", "sin($1)");
+        r = r.replaceAll("(?i)\\bcos\\s*\\(([^)]*)\\)", "cos($1)");
+        r = r.replaceAll("(?i)\\btan\\s*\\(([^)]*)\\)", "tan($1)");
+        r = r.replaceAll("(?i)\\blog\\s*\\(([^)]*)\\)", "log($1)");
+        r = r.replaceAll("(?i)\\bln\\s*\\(([^)]*)\\)", "ln($1)");
+        return r;
+    }
+
+    // Replace abs(...) occurrences respecting nested parentheses.
+    // If latex==true, replace with \left|...\right|, else with |...| for HTML fallback.
+    private String replaceAbsWith(String input, boolean latex) {
+        StringBuilder out = new StringBuilder();
+        String s = input;
+        int i = 0;
+        while (i < s.length()) {
+            int idx = indexOfWordIgnoreCase(s, "abs", i);
+            if (idx == -1) {
+                out.append(s.substring(i));
+                break;
+            }
+            // append before abs
+            out.append(s.substring(i, idx));
+            int p = idx + 3; // position after 'abs'
+            // skip spaces
+            while (p < s.length() && Character.isWhitespace(s.charAt(p))) p++;
+            if (p >= s.length() || s.charAt(p) != '(') {
+                // not a function call, copy 'abs' literally
+                out.append(s.substring(idx, p));
+                i = p;
+                continue;
+            }
+            // find matching closing parenthesis
+            int start = p + 1;
+            int depth = 1;
+            int j = start;
+            for (; j < s.length(); j++) {
+                char c = s.charAt(j);
+                if (c == '(') depth++;
+                else if (c == ')') {
+                    depth--;
+                    if (depth == 0) break;
+                }
+            }
+            if (j >= s.length() || depth != 0) {
+                // unmatched, just copy rest and stop
+                out.append(s.substring(idx));
+                break;
+            }
+            String inner = s.substring(start, j);
+            if (latex) {
+                out.append("\\left|").append(inner).append("\\right|");
+            } else {
+                out.append("|").append(inner).append("|");
+            }
+            i = j + 1;
+        }
+        return out.toString();
+    }
+
+    // helper: find word 'word' case-insensitive starting from fromIndex where word boundary required
+    private int indexOfWordIgnoreCase(String s, String word, int fromIndex) {
+        String lower = s.toLowerCase();
+        String w = word.toLowerCase();
+        int idx = lower.indexOf(w, fromIndex);
+        while (idx != -1) {
+            boolean leftOk = idx == 0 || !Character.isLetterOrDigit(lower.charAt(idx - 1));
+            int after = idx + w.length();
+            boolean rightOk = after >= lower.length() || !Character.isLetterOrDigit(lower.charAt(after));
+            if (leftOk && rightOk) return idx;
+            idx = lower.indexOf(w, idx + 1);
+        }
+        return -1;
     }
 
     
