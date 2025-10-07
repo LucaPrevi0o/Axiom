@@ -33,7 +33,7 @@ public class AxisRenderer {
         
         // Draw ticks and labels
         double maxRange = Math.max(bounds.getRangeX(), bounds.getRangeY());
-        double step = TickCalculator.calculateNiceStep(maxRange, 8);
+        double step = TickCalculator.calculateNiceStep(maxRange, 20);
         
         drawXAxisTicks(g2, bounds, width, height, step, yAxisScreen);
         drawYAxisTicks(g2, bounds, width, height, step, xAxisScreen);

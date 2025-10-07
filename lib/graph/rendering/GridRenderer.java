@@ -23,7 +23,7 @@ public class GridRenderer {
         double xRange = bounds.getRangeX();
         double yRange = bounds.getRangeY();
         double maxRange = Math.max(xRange, yRange);
-        double step = TickCalculator.calculateNiceStep(maxRange, 8);
+        double step = TickCalculator.calculateNiceStep(maxRange, 20);
         
         // Calculate if sub-grid should be drawn
         double unitsPerPixel = maxRange / Math.max(width, height);

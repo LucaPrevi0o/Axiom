@@ -24,9 +24,9 @@ public class GraphPanel extends JPanel {
     // cache of named intersection points for user-defined intersection functions
     private java.util.Map<String, java.util.List<Point2D.Double>> namedIntersectionPoints = new java.util.HashMap<>();
     
-    // Graph defaults
-    private static final double DEFAULT_VIEW_RANGE_X = 20.0;
-    private static final double DEFAULT_VIEW_RANGE_Y = 20.0;
+    // Graph defaults - increased range to show more of the graph initially
+    private static final double DEFAULT_VIEW_RANGE_X = 40.0;
+    private static final double DEFAULT_VIEW_RANGE_Y = 40.0;
     private static final double INITIAL_ZOOM = 1.0;
     
     // Track previous dimensions for resize handling
