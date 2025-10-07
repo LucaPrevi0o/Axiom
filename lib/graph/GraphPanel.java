@@ -15,11 +15,16 @@ public class GraphPanel extends JPanel {
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
     
+    // Graph defaults: use DEFAULT_VIEW_RANGE and INITIAL_ZOOM to control initial zoom level
+    private static final double DEFAULT_VIEW_RANGE_X = 20.0; // default total width in graph units
+    private static final double DEFAULT_VIEW_RANGE_Y = 20.0; // default total height in graph units
+    private static final double INITIAL_ZOOM = 1.0; // 1.0 = 1x (no zoom). >1.0 zooms in, <1.0 zooms out
+
     // Graph bounds
-    private double minX = -10;
-    private double maxX = 10;
-    private double minY = -10;
-    private double maxY = 10;
+    private double minX;
+    private double maxX;
+    private double minY;
+    private double maxY;
     
     // Mouse dragging state
     private Point lastMousePoint;
@@ -30,10 +35,48 @@ public class GraphPanel extends JPanel {
      */
     public GraphPanel() {
         setBackground(Color.WHITE);
+        // initialize view to default zoom
+        double halfWidth = (DEFAULT_VIEW_RANGE_X / INITIAL_ZOOM) / 2.0;
+        double halfHeight = (DEFAULT_VIEW_RANGE_Y / INITIAL_ZOOM) / 2.0;
+        this.minX = -halfWidth;
+        this.maxX = halfWidth;
+        this.minY = -halfHeight;
+        this.maxY = halfHeight;
+
         evaluator = new ExpressionEvaluator(userFunctions);
         functions = new ArrayList<>();
         
         setupMouseListeners();
+        // Preserve zoom ratio when the panel is resized
+        this.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                preserveZoomOnResize();
+            }
+        });
+    }
+
+    // Keep units-per-pixel constant when the component is resized by adjusting bounds
+    private void preserveZoomOnResize() {
+        int w = Math.max(1, getWidth());
+        int h = Math.max(1, getHeight());
+
+        // current center in graph coordinates
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+
+        // current units per pixel
+        double unitsPerPixelX = (maxX - minX) / Math.max(1, w);
+        double unitsPerPixelY = (maxY - minY) / Math.max(1, h);
+
+        // recompute half ranges preserving units per pixel
+        double halfWidth = (unitsPerPixelX * w) / 2.0;
+        double halfHeight = (unitsPerPixelY * h) / 2.0;
+
+        minX = centerX - halfWidth;
+        maxX = centerX + halfWidth;
+        minY = centerY - halfHeight;
+        maxY = centerY + halfHeight;
     }
     
     /**
@@ -84,23 +127,33 @@ public class GraphPanel extends JPanel {
      */
     private void handleZoom(MouseWheelEvent e) {
         double zoomFactor = e.getWheelRotation() < 0 ? 0.95 : 1.05;
-        
-        // Get mouse position in graph coordinates
-        double mouseX = screenToX(e.getX());
-        double mouseY = screenToY(e.getY());
-        
-        // Calculate new bounds centered on mouse position
-        double rangeX = (maxX - minX) * zoomFactor;
-        double rangeY = (maxY - minY) * zoomFactor;
-        
-        double centerX = mouseX;
-        double centerY = mouseY;
-        
-        minX = centerX - rangeX / 2;
-        maxX = centerX + rangeX / 2;
-        minY = centerY - rangeY / 2;
-        maxY = centerY + rangeY / 2;
-        
+
+        // Screen position of mouse
+        int sx = e.getX();
+        int sy = e.getY();
+
+        // Graph coordinate under mouse before zoom
+        double mouseGraphX = screenToX(sx);
+        double mouseGraphY = screenToY(sy);
+
+        // New ranges after zoom
+        double newRangeX = (maxX - minX) * zoomFactor;
+        double newRangeY = (maxY - minY) * zoomFactor;
+
+        // Compute new min/max so that mouseGraphX maps to same screen X (sx)
+        double relX = (sx / (double) Math.max(1, getWidth()));
+        double relY = (sy / (double) Math.max(1, getHeight()));
+
+        double newMinX = mouseGraphX - relX * newRangeX;
+        double newMaxX = newMinX + newRangeX;
+        double newMaxY = mouseGraphY + (1 - relY) * newRangeY;
+        double newMinY = newMaxY - newRangeY;
+
+        minX = newMinX;
+        maxX = newMaxX;
+        minY = newMinY;
+        maxY = newMaxY;
+
         repaint();
     }
     
@@ -162,16 +215,23 @@ public class GraphPanel extends JPanel {
     private void drawGrid(Graphics2D g2) {
         g2.setColor(new Color(220, 220, 220));
         g2.setStroke(new BasicStroke(1));
-        
+        // Compute nice tick spacing based on view range
+        double xRange = maxX - minX;
+        double yRange = maxY - minY;
+        double xStep = niceStep(xRange, 8); // aim ~8 vertical grid lines
+        double yStep = niceStep(yRange, 8); // aim ~8 horizontal grid lines
+
         // Vertical grid lines
-        for (int i = (int) minX; i <= maxX; i++) {
-            int x = xToScreen(i);
+        double startX = Math.floor(minX / xStep) * xStep;
+        for (double gx = startX; gx <= maxX + 1e-12; gx += xStep) {
+            int x = xToScreen(gx);
             g2.drawLine(x, 0, x, getHeight());
         }
-        
+
         // Horizontal grid lines
-        for (int i = (int) minY; i <= maxY; i++) {
-            int y = yToScreen(i);
+        double startY = Math.floor(minY / yStep) * yStep;
+        for (double gy = startY; gy <= maxY + 1e-12; gy += yStep) {
+            int y = yToScreen(gy);
             g2.drawLine(0, y, getWidth(), y);
         }
     }
@@ -192,22 +252,57 @@ public class GraphPanel extends JPanel {
         int xAxis = xToScreen(0);
         g2.drawLine(xAxis, 0, xAxis, getHeight());
         
-        // Draw tick marks and labels
+        // Draw tick marks and labels using adaptive spacing
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
-        for (int i = (int) minX; i <= maxX; i++) {
-            if (i != 0) {
-                int x = xToScreen(i);
-                g2.drawLine(x, yAxis - 5, x, yAxis + 5);
-                g2.drawString(String.valueOf(i), x - 5, yAxis + 20);
-            }
+        double xRange = maxX - minX;
+        double yRange = maxY - minY;
+        double xStep = niceStep(xRange, 8);
+        double yStep = niceStep(yRange, 8);
+
+        double startX = Math.floor(minX / xStep) * xStep;
+        for (double gx = startX; gx <= maxX + 1e-12; gx += xStep) {
+            if (Math.abs(gx) < 1e-12) continue; // skip origin (already drawn)
+            int x = xToScreen(gx);
+            g2.drawLine(x, yAxis - 5, x, yAxis + 5);
+            String label = formatTickLabel(gx, xStep);
+            g2.drawString(label, x - g2.getFontMetrics().stringWidth(label) / 2, yAxis + 20);
         }
-        
-        for (int i = (int) minY; i <= maxY; i++) {
-            if (i != 0) {
-                int y = yToScreen(i);
-                g2.drawLine(xAxis - 5, y, xAxis + 5, y);
-                g2.drawString(String.valueOf(i), xAxis + 10, y + 5);
-            }
+
+        double startY = Math.floor(minY / yStep) * yStep;
+        for (double gy = startY; gy <= maxY + 1e-12; gy += yStep) {
+            if (Math.abs(gy) < 1e-12) continue;
+            int y = yToScreen(gy);
+            g2.drawLine(xAxis - 5, y, xAxis + 5, y);
+            String label = formatTickLabel(gy, yStep);
+            g2.drawString(label, xAxis + 10, y + 5);
+        }
+    }
+
+    // Compute a "nice" step for ticks: 1,2,5 * 10^n scaled to range/targetTicks
+    private double niceStep(double range, int targetTicks) {
+        if (range <= 0) return 1.0;
+        double rawStep = range / Math.max(1, targetTicks);
+        double exp = Math.floor(Math.log10(rawStep));
+        double base = Math.pow(10, exp);
+        double fraction = rawStep / base;
+        double niceFraction;
+        if (fraction <= 1.0) niceFraction = 1.0;
+        else if (fraction <= 2.0) niceFraction = 2.0;
+        else if (fraction <= 5.0) niceFraction = 5.0;
+        else niceFraction = 10.0;
+        return niceFraction * base;
+    }
+
+    // Format tick label: show decimals only when step < 1, otherwise show integer-ish
+    private String formatTickLabel(double value, double step) {
+        double absStep = Math.abs(step);
+        if (absStep >= 1.0) {
+            long v = Math.round(value);
+            return String.valueOf(v);
+        } else {
+            // decimal precision based on step magnitude
+            int prec = (int) Math.max(0, Math.min(6, -Math.floor(Math.log10(absStep)) + 1));
+            return String.format(java.util.Locale.US, "%." + prec + "f", value);
         }
     }
     
@@ -232,18 +327,39 @@ public class GraphPanel extends JPanel {
         
         Path2D path = new Path2D.Double();
         boolean firstPoint = true;
-        
-        // Sample points across the screen
-        for (int screenX = 0; screenX < getWidth(); screenX++) {
+        // Adaptive sampling: choose number of samples proportional to viewport width
+        // and inversely proportional to the visible X range (zoom level).
+        double viewRangeX = maxX - minX;
+        int pixelWidth = Math.max(2, getWidth());
+
+        // Base samples: one sample per pixel
+        double baseSamples = pixelWidth;
+
+        // Zoom factor: when viewRangeX is smaller than a reference range, increase samples.
+        double referenceRange = 20.0; // when range is 20 units, use ~1 sample/pixel
+        double zoomMultiplier = Math.max(1.0, referenceRange / viewRangeX);
+
+        // Limit the multiplier to avoid excessive sampling
+        zoomMultiplier = Math.min(10.0, zoomMultiplier);
+
+        int sampleCount = (int) Math.round(baseSamples * zoomMultiplier);
+        // Cap absolute number of samples to avoid performance issues
+        sampleCount = Math.max(50, Math.min(5000, sampleCount));
+
+        // Step in screen pixels between successive samples
+        double step = (double) pixelWidth / (double) sampleCount;
+
+        for (double sx = 0.0; sx < pixelWidth; sx += step) {
+            int screenX = (int) Math.round(sx);
             double x = screenToX(screenX);
-            
+
             try {
                 double y = evaluator.evaluate(function.getExpression(), x);
-                
+
                 // Check if y is within bounds
                 if (!Double.isNaN(y) && !Double.isInfinite(y)) {
                     int screenY = yToScreen(y);
-                    
+
                     if (firstPoint) {
                         path.moveTo(screenX, screenY);
                         firstPoint = false;
@@ -252,6 +368,7 @@ public class GraphPanel extends JPanel {
                     }
                 }
             } catch (Exception e) {
+                // On evaluation error, break the current segment
                 firstPoint = true;
             }
         }
