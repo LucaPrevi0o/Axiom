@@ -7,13 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Panel for managing function entries
- * Now uses FunctionColorManager for color management
+ * Panel for managing function entries and parameters
+ * Uses a unified list for both types
  */
 public class FunctionPanel extends JPanel {
     
     private final GraphPanel graphPanel;
     private final List<FunctionEntry> functionEntries;
+    private final List<Parameter> parameters;
     private final FunctionColorManager colorManager;
     private final JPanel entriesPanel;
     private final JButton addButton;
@@ -27,6 +28,7 @@ public class FunctionPanel extends JPanel {
     public FunctionPanel(GraphPanel graphPanel) {
         this.graphPanel = graphPanel;
         this.functionEntries = new ArrayList<>();
+        this.parameters = new ArrayList<>();
         this.colorManager = new FunctionColorManager();
         this.entriesPanel = new JPanel();
         this.addButton = new JButton("+ Add Function");
@@ -42,7 +44,6 @@ public class FunctionPanel extends JPanel {
      * Initialize components
      */
     private void initComponents() {
-        // Set preferred width for initial split pane layout (height will be determined by parent)
         setPreferredSize(new Dimension(280, 600));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
@@ -69,19 +70,61 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Add a new function
+     * Add a new function or parameter
      */
     public void addFunction(String expression) {
         Color color = colorManager.getNextColor();
-        FunctionEntry entry = new FunctionEntry(expression, color, this);
         
+        // Check if this is a parameter definition
+        if (FunctionParser.isParameter(expression.trim())) {
+            Parameter param = FunctionParser.parseParameter(expression.trim());
+            if (param != null) {
+                addParameterEntry(param, color);
+                return;
+            }
+        }
+        
+        // Otherwise, create a regular function entry
+        FunctionEntry entry = new FunctionEntry(expression, color, this);
         functionEntries.add(entry);
         entriesPanel.add(entry);
         entriesPanel.add(Box.createVerticalStrut(5));
         
-        updateGraph();
         revalidate();
         repaint();
+        updateGraph();
+    }
+    
+    /**
+     * Add a parameter entry
+     */
+    private void addParameterEntry(Parameter param, Color color) {
+        // Check if parameter already exists
+        boolean exists = parameters.stream()
+            .anyMatch(p -> p.getName().equalsIgnoreCase(param.getName()));
+        
+        if (!exists) {
+            parameters.add(param);
+            
+            ParameterEntry entry = new ParameterEntry(param, color, new ParameterEntry.ParameterChangeListener() {
+                @Override
+                public void onParameterChanged(Parameter parameter) {
+                    updateGraph();
+                }
+                
+                @Override
+                public void onParameterDeleted(Parameter parameter) {
+                    removeParameter(parameter);
+                }
+            });
+            
+            entriesPanel.add(entry);
+            entriesPanel.add(Box.createVerticalStrut(5));
+            
+            revalidate();
+            repaint();
+            updateGraph();
+        }
     }
     
     /**
@@ -89,30 +132,87 @@ public class FunctionPanel extends JPanel {
      */
     public void removeFunction(FunctionEntry entry) {
         functionEntries.remove(entry);
-        entriesPanel.remove(entry);
         
-        // Remove spacing after this entry
+        // Find and remove the entry from the panel
         Component[] components = entriesPanel.getComponents();
         for (int i = 0; i < components.length; i++) {
-            if (components[i] == entry && i + 1 < components.length) {
-                entriesPanel.remove(i + 1);
+            if (components[i] == entry) {
+                entriesPanel.remove(i);
+                // Also remove the spacer if it exists
+                if (i < entriesPanel.getComponentCount()) {
+                    entriesPanel.remove(i);
+                }
                 break;
             }
         }
         
-        updateGraph();
         revalidate();
         repaint();
+        updateGraph();
+    }
+    
+    /**
+     * Convert a FunctionEntry to a ParameterEntry
+     */
+    public void convertToParameter(FunctionEntry entry, String expression) {
+        // Parse the parameter
+        Parameter param = FunctionParser.parseParameter(expression);
+        if (param == null) {
+            return;
+        }
+        
+        // Get the color from the entry before removing it
+        Color color = entry.getColor();
+        
+        // Remove the old function entry
+        removeFunction(entry);
+        
+        // Add the parameter entry
+        addParameterEntry(param, color);
+    }
+    
+    /**
+     * Remove a parameter
+     */
+    private void removeParameter(Parameter parameter) {
+        parameters.removeIf(p -> p.getName().equalsIgnoreCase(parameter.getName()));
+        
+        Component[] components = entriesPanel.getComponents();
+        for (int i = 0; i < components.length; i++) {
+            if (components[i] instanceof ParameterEntry) {
+                ParameterEntry entry = (ParameterEntry) components[i];
+                if (entry.getParameter().getName().equalsIgnoreCase(parameter.getName())) {
+                    entriesPanel.remove(i); // Remove entry
+                    if (i < components.length - 1) {
+                        entriesPanel.remove(i); // Remove spacer
+                    }
+                    break;
+                }
+            }
+        }
+        
+        revalidate();
+        repaint();
+        updateGraph();
     }
     
     /**
      * Update graph with all current functions
      */
     public void updateGraph() {
+        // Parse function entries
         FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries);
         
         namedFunctions = result.getNamedFunctions();
         graphPanel.setUserFunctions(namedFunctions);
+        
+        // Build parameter values map
+        java.util.Map<String, Double> paramValues = new java.util.HashMap<>();
+        for (Parameter param : parameters) {
+            paramValues.put(param.getName().toLowerCase(), param.getCurrentValue());
+        }
+        graphPanel.setParameters(paramValues);
+        
         graphPanel.setFunctions(result.getGraphFunctions());
         graphPanel.repaint();
     }

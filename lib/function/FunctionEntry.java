@@ -52,6 +52,7 @@ public class FunctionEntry extends JPanel {
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
         setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        setAlignmentX(Component.LEFT_ALIGNMENT);
         
         // Color indicator with click handler
         colorIndicator = createColorIndicator();
@@ -69,12 +70,6 @@ public class FunctionEntry extends JPanel {
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 commitEdit();
-            }
-        });
-        expressionField.getDocument().addDocumentListener(new SimpleDocumentListener() {
-            @Override
-            public void onChange() {
-                parent.updateGraph();
             }
         });
         
@@ -163,7 +158,14 @@ public class FunctionEntry extends JPanel {
     private void commitEdit() {
         if (!expressionField.isVisible()) return;
         
-        String newExpr = expressionField.getText();
+        String newExpr = expressionField.getText().trim();
+        
+        // Check if this is now a parameter - if so, notify parent to convert
+        if (FunctionParser.isParameter(newExpr)) {
+            parent.convertToParameter(this, newExpr);
+            return;
+        }
+        
         formatter.formatExpression(newExpr, displayLabel);
         
         CardLayout cl = (CardLayout) centerPanel.getLayout();

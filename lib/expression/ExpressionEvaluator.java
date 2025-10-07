@@ -4,11 +4,17 @@ import java.util.Map;
 public class ExpressionEvaluator {
 
     private Map<String, String> userFunctions;
+    private Map<String, Double> parameters;
 
-    public ExpressionEvaluator() { this(null); }
+    public ExpressionEvaluator() { this(null, null); }
 
-    public ExpressionEvaluator(Map<String, String> userFunctions) {
+    public ExpressionEvaluator(Map<String, String> userFunctions) { 
+        this(userFunctions, null); 
+    }
+    
+    public ExpressionEvaluator(Map<String, String> userFunctions, Map<String, Double> parameters) {
         this.userFunctions = userFunctions;
+        this.parameters = parameters;
     }
     
     /**
@@ -20,6 +26,17 @@ public class ExpressionEvaluator {
      */
     public double evaluate(String expression, double x) throws Exception {
     expression = expression.toLowerCase().trim();
+    
+    // Replace parameter names with their values
+    if (parameters != null) {
+        for (Map.Entry<String, Double> entry : parameters.entrySet()) {
+            String paramName = entry.getKey().toLowerCase();
+            String paramValue = String.valueOf(entry.getValue());
+            // Replace whole-word occurrences of parameter name
+            expression = expression.replaceAll("(?i)\\b" + paramName + "\\b", "(" + paramValue + ")");
+        }
+    }
+    
     // Replace whole-word occurrences of x with a parenthesized numeric value so
     // expressions like x^2 evaluate correctly when x is negative (e.g. (-2)^2).
     String xVal = String.valueOf(x);

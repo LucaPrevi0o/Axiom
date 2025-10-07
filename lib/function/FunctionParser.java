@@ -23,16 +23,21 @@ public class FunctionParser {
     private static final Pattern REGION_PATTERN = 
         Pattern.compile("^\\s*\\(.*(?:>=|<=|>|<).*\\)\\s*$");
     
+    private static final Pattern PARAMETER_PATTERN = 
+        Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\[\\s*(-?\\d+\\.?\\d*)\\s*:\\s*(-?\\d+\\.?\\d*)\\s*\\]\\s*$");
+    
     /**
      * Result of parsing function entries
      */
     public static class ParseResult {
         private final Map<String, String> namedFunctions;
         private final List<GraphFunction> graphFunctions;
+        private final List<Parameter> parameters;
         
-        public ParseResult(Map<String, String> namedFunctions, List<GraphFunction> graphFunctions) {
+        public ParseResult(Map<String, String> namedFunctions, List<GraphFunction> graphFunctions, List<Parameter> parameters) {
             this.namedFunctions = namedFunctions;
             this.graphFunctions = graphFunctions;
+            this.parameters = parameters;
         }
         
         public Map<String, String> getNamedFunctions() {
@@ -42,16 +47,21 @@ public class FunctionParser {
         public List<GraphFunction> getGraphFunctions() {
             return graphFunctions;
         }
+        
+        public List<Parameter> getParameters() {
+            return parameters;
+        }
     }
     
     /**
      * Parse a list of function entries into named functions and graph functions
      * @param entries List of function entries to parse
-     * @return ParseResult containing named functions and graph functions
+     * @return ParseResult containing named functions, graph functions, and parameters
      */
     public static ParseResult parseEntries(List<FunctionEntry> entries) {
         Map<String, String> namedFunctions = new HashMap<>();
         List<GraphFunction> graphFunctions = new ArrayList<>();
+        List<Parameter> parameters = new ArrayList<>();
         
         for (FunctionEntry entry : entries) {
             if (!entry.isEnabled()) continue;
@@ -59,7 +69,12 @@ public class FunctionParser {
             String expr = entry.getExpression().trim();
             Color color = entry.getColor();
             
-            if (isNamedFunction(expr)) {
+            if (isParameter(expr)) {
+                Parameter param = parseParameter(expr);
+                if (param != null) {
+                    parameters.add(param);
+                }
+            } else if (isNamedFunction(expr)) {
                 parseNamedFunction(expr, color, namedFunctions, graphFunctions);
             } else if (isRegion(expr)) {
                 parseRegion(expr, color, graphFunctions);
@@ -70,7 +85,7 @@ public class FunctionParser {
             }
         }
         
-        return new ParseResult(namedFunctions, graphFunctions);
+        return new ParseResult(namedFunctions, graphFunctions, parameters);
     }
     
     /**
@@ -98,6 +113,15 @@ public class FunctionParser {
      */
     public static boolean isRegion(String expr) {
         return REGION_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
+     * Check if an expression is a parameter definition (e.g., c=[2:5])
+     * @param expr Expression to check
+     * @return true if parameter
+     */
+    public static boolean isParameter(String expr) {
+        return PARAMETER_PATTERN.matcher(expr).matches();
     }
     
     /**
@@ -212,6 +236,31 @@ public class FunctionParser {
             String right = inside.substring(opIdx + operator.length()).trim();
             graphFunctions.add(GraphFunction.region(left, operator, right, color));
         }
+    }
+    
+    /**
+     * Parse a parameter definition (e.g., c=[2:5])
+     * @param expr Expression to parse
+     * @return Parameter object or null if invalid
+     */
+    public static Parameter parseParameter(String expr) {
+        java.util.regex.Matcher matcher = PARAMETER_PATTERN.matcher(expr);
+        if (matcher.matches()) {
+            try {
+                String name = matcher.group(1);
+                double min = Double.parseDouble(matcher.group(2));
+                double max = Double.parseDouble(matcher.group(3));
+                
+                if (min >= max) {
+                    return null; // Invalid range
+                }
+                
+                return new Parameter(name, min, max);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
     
     /**

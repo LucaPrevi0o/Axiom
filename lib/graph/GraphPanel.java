@@ -14,6 +14,7 @@ public class GraphPanel extends JPanel {
     private List<GraphFunction> functions;
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
+    private java.util.Map<String, Double> parameters = new java.util.HashMap<>();
     
     // Refactored components
     private GraphBounds bounds;
@@ -45,7 +46,7 @@ public class GraphPanel extends JPanel {
         bounds = GraphBounds.centered(halfWidth, halfHeight);
         
         // Initialize components
-        evaluator = new ExpressionEvaluator(userFunctions);
+        evaluator = new ExpressionEvaluator(userFunctions, parameters);
         functions = new ArrayList<>();
         viewportManager = new ViewportManager(bounds);
         intersectionFinder = new IntersectionFinder(evaluator);
@@ -145,7 +146,7 @@ public class GraphPanel extends JPanel {
 
     public void setUserFunctions(java.util.Map<String, String> userFunctions) {
         this.userFunctions = userFunctions == null ? new java.util.HashMap<>() : userFunctions;
-        this.evaluator = new ExpressionEvaluator(this.userFunctions);
+        this.evaluator = new ExpressionEvaluator(this.userFunctions, this.parameters);
         
         // Update renderer and intersection finder with new evaluator
         this.intersectionFinder = new IntersectionFinder(evaluator);
@@ -176,6 +177,15 @@ public class GraphPanel extends JPanel {
         }
         
         renderer.setNamedIntersectionPoints(namedIntersectionPoints);
+    }
+    
+    public void setParameters(java.util.Map<String, Double> parameters) {
+        this.parameters = parameters == null ? new java.util.HashMap<>() : parameters;
+        this.evaluator = new ExpressionEvaluator(this.userFunctions, this.parameters);
+        
+        // Update renderer and intersection finder with new evaluator
+        this.intersectionFinder = new IntersectionFinder(evaluator);
+        this.renderer = new GraphRenderer(evaluator, intersectionFinder, bounds);
     }
     
     /**
