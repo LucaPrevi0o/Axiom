@@ -1,4 +1,3 @@
-// GraphFunction.java
 import java.awt.Color;
 
 public class GraphFunction {

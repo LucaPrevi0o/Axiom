@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,10 @@ public class GraphPanel extends JPanel {
     private double maxX = 10;
     private double minY = -10;
     private double maxY = 10;
+    
+    // Mouse dragging state
+    private Point lastMousePoint;
+    private boolean isDragging = false;
 
     /**
      * Constructor to set up the panel
@@ -22,6 +27,99 @@ public class GraphPanel extends JPanel {
         setBackground(Color.WHITE);
         evaluator = new ExpressionEvaluator();
         functions = new ArrayList<>();
+        
+        setupMouseListeners();
+    }
+    
+    /**
+     * Set up mouse listeners for zoom and pan
+     */
+    private void setupMouseListeners() {
+        // Mouse wheel for zoom
+        addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseWheelMoved(MouseWheelEvent e) {
+                handleZoom(e);
+            }
+        });
+        
+        // Mouse drag for pan
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    lastMousePoint = e.getPoint();
+                    isDragging = true;
+                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                }
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    isDragging = false;
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+        });
+        
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (isDragging) {
+                    handlePan(e);
+                }
+            }
+        });
+    }
+    
+    /**
+     * Handle zoom with mouse wheel
+     * @param e The mouse wheel event
+     */
+    private void handleZoom(MouseWheelEvent e) {
+        double zoomFactor = e.getWheelRotation() < 0 ? 0.95 : 1.05;
+        
+        // Get mouse position in graph coordinates
+        double mouseX = screenToX(e.getX());
+        double mouseY = screenToY(e.getY());
+        
+        // Calculate new bounds centered on mouse position
+        double rangeX = (maxX - minX) * zoomFactor;
+        double rangeY = (maxY - minY) * zoomFactor;
+        
+        double centerX = mouseX;
+        double centerY = mouseY;
+        
+        minX = centerX - rangeX / 2;
+        maxX = centerX + rangeX / 2;
+        minY = centerY - rangeY / 2;
+        maxY = centerY + rangeY / 2;
+        
+        repaint();
+    }
+    
+    /**
+     * Handle panning with mouse drag
+     * @param e The mouse event
+     */
+    private void handlePan(MouseEvent e) {
+        if (lastMousePoint == null) return;
+        
+        int dx = e.getX() - lastMousePoint.x;
+        int dy = e.getY() - lastMousePoint.y;
+        
+        // Convert pixel movement to graph coordinate movement
+        double graphDx = dx * (maxX - minX) / getWidth();
+        double graphDy = -dy * (maxY - minY) / getHeight(); // Negative because screen Y is inverted
+        
+        minX -= graphDx;
+        maxX -= graphDx;
+        minY -= graphDy;
+        maxY -= graphDy;
+        
+        lastMousePoint = e.getPoint();
+        repaint();
     }
     
     /**
