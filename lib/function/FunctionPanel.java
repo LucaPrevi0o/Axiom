@@ -126,8 +126,37 @@ public class FunctionPanel extends JPanel {
                 namedFunctions.put(name.toLowerCase(), rhs);
                 // also add the named function to be plotted using this entry's color
                 if (entry.isEnabled()) {
-                    // plot the function by its RHS expression
-                    functions.add(new GraphFunction(rhs, entry.getColor()));
+                    // If the RHS itself is an intersection like (a=b), create a named intersection
+                    if (rhs.matches("^\\s*\\(.*=.*\\)\\s*$")) {
+                        String insideRhs = rhs.substring(1, rhs.length() - 1).trim();
+                        int eqIdxRhs = insideRhs.indexOf('=');
+                        if (eqIdxRhs > 0) {
+                            String leftExpr = insideRhs.substring(0, eqIdxRhs).trim();
+                            String rightExpr = insideRhs.substring(eqIdxRhs + 1).trim();
+                            GraphFunction gf = lib.graph.GraphFunction.intersection(leftExpr, rightExpr, entry.getColor());
+                            gf.setName(name);
+                            functions.add(gf);
+                        }
+                    } else {
+                        // plot the function by its RHS expression and set its name
+                        GraphFunction gf = new GraphFunction(rhs, entry.getColor());
+                        gf.setName(name);
+                        functions.add(gf);
+                    }
+                }
+            }
+            // Detect intersection request: (expr1=expr2)
+            else if (expr.matches("^\\s*\\(.*=.*\\)\\s*$")) {
+                // strip surrounding parentheses
+                String inside = expr.trim();
+                inside = inside.substring(1, inside.length() - 1).trim();
+                int eqIdx = inside.indexOf('=');
+                if (eqIdx > 0) {
+                    String left = inside.substring(0, eqIdx).trim();
+                    String right = inside.substring(eqIdx + 1).trim();
+                    if (entry.isEnabled()) {
+                        functions.add(lib.graph.GraphFunction.intersection(left, right, entry.getColor()));
+                    }
                 }
             } else {
                 if (entry.isEnabled()) {

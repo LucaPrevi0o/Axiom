@@ -19,8 +19,11 @@ public class ExpressionEvaluator {
      * @throws Exception If the expression is invalid
      */
     public double evaluate(String expression, double x) throws Exception {
-        expression = expression.toLowerCase().trim();
-        expression = expression.replace("x", String.valueOf(x));
+    expression = expression.toLowerCase().trim();
+    // Replace whole-word occurrences of x with a parenthesized numeric value so
+    // expressions like x^2 evaluate correctly when x is negative (e.g. (-2)^2).
+    String xVal = String.valueOf(x);
+    expression = expression.replaceAll("(?i)\\bx\\b", "(" + xVal + ")");
         
         // Handle basic math functions
         expression = handleFunctions(expression);

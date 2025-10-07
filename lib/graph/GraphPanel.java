@@ -6,6 +6,8 @@ import lib.expression.ExpressionEvaluator;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
+import java.awt.geom.Point2D;
+import java.util.regex.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,8 @@ public class GraphPanel extends JPanel {
     private List<GraphFunction> functions;
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
+    // cache of named intersection points for user-defined intersection functions
+    private java.util.Map<String, java.util.List<Point2D.Double>> namedIntersectionPoints = new java.util.HashMap<>();
     
     // Graph defaults: use DEFAULT_VIEW_RANGE and INITIAL_ZOOM to control initial zoom level
     private static final double DEFAULT_VIEW_RANGE_X = 20.0; // default total width in graph units
@@ -191,6 +195,27 @@ public class GraphPanel extends JPanel {
     public void setUserFunctions(java.util.Map<String, String> userFunctions) {
         this.userFunctions = userFunctions == null ? new java.util.HashMap<>() : userFunctions;
         this.evaluator = new ExpressionEvaluator(this.userFunctions);
+        // Precompute intersection points for any named function whose RHS is an intersection
+        namedIntersectionPoints.clear();
+        for (java.util.Map.Entry<String, String> e : this.userFunctions.entrySet()) {
+            String name = e.getKey().toLowerCase();
+            String rhs = e.getValue();
+            if (rhs != null && rhs.matches("^\\s*\\(.*=.*\\)\\s*$")) {
+                String inside = rhs.trim();
+                inside = inside.substring(1, inside.length() - 1).trim();
+                int eqIdx = inside.indexOf('=');
+                if (eqIdx > 0) {
+                    String left = inside.substring(0, eqIdx).trim();
+                    String right = inside.substring(eqIdx + 1).trim();
+                    try {
+                        java.util.List<Point2D.Double> pts = computeIntersections(left, right);
+                        namedIntersectionPoints.put(name, pts);
+                    } catch (Exception ex) {
+                        // ignore
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -206,6 +231,138 @@ public class GraphPanel extends JPanel {
         drawGrid(g2);
         drawAxes(g2);
         drawFunctions(g2);
+        drawIntersections(g2);
+    }
+
+    // Find and draw intersection points for any intersection GraphFunctions
+    private void drawIntersections(Graphics2D g2) {
+        for (GraphFunction gf : functions) {
+            if (!gf.isIntersection()) continue;
+
+            String leftExpr = gf.getLhsExpr();
+            String rightExpr = gf.getRhsExpr();
+            Color c = gf.getColor();
+            g2.setColor(c);
+
+            // We'll sample across the visible X range to find sign changes of f(x)-g(x)
+            int samples = Math.min(1000, Math.max(200, getWidth()));
+            double step = (maxX - minX) / (double) samples;
+            double x0 = minX;
+            double prevVal = Double.NaN;
+            double prevX = x0;
+            for (int i = 0; i <= samples; i++) {
+                double x = minX + i * step;
+                try {
+                    double vLeft = evaluator.evaluate(leftExpr, x);
+                    double vRight = evaluator.evaluate(rightExpr, x);
+                    double v = vLeft - vRight;
+
+                    if (!Double.isNaN(prevVal) && !Double.isInfinite(prevVal) && !Double.isNaN(v) && !Double.isInfinite(v)) {
+                        if (prevVal == 0.0 || v == 0.0 || (prevVal > 0 && v < 0) || (prevVal < 0 && v > 0)) {
+                            // sign change or zero detected between prevX and x -> refine root with bisection
+                            double a = prevX;
+                            double b = x;
+                            double fa = prevVal;
+                            double root = Double.NaN;
+                            try {
+                                // perform up to 30 iterations
+                                for (int it = 0; it < 40; it++) {
+                                    double m = (a + b) / 2.0;
+                                    double fm = evaluator.evaluate(leftExpr, m) - evaluator.evaluate(rightExpr, m);
+                                    if (Double.isNaN(fm) || Double.isInfinite(fm)) break;
+                                    if (Math.abs(fm) < 1e-8) { root = m; break; }
+                                    if ((fa > 0 && fm < 0) || (fa < 0 && fm > 0)) { b = m; }
+                                    else { a = m; fa = fm; }
+                                }
+                                if (Double.isNaN(root)) root = (a + b) / 2.0;
+                            } catch (Exception ex) {
+                                root = (a + b) / 2.0;
+                            }
+
+                            if (!Double.isNaN(root) && !Double.isInfinite(root)) {
+                                try {
+                                    double y = evaluator.evaluate(leftExpr, root);
+                                    int sx = xToScreen(root);
+                                    int sy = yToScreen(y);
+                                    g2.fillOval(sx - 4, sy - 4, 8, 8);
+                                } catch (Exception ex) {
+                                    // ignore
+                                }
+                            }
+                        }
+                    }
+
+                    prevVal = v;
+                    prevX = x;
+                } catch (Exception ex) {
+                    prevVal = Double.NaN;
+                    prevX = x;
+                }
+            }
+        }
+    }
+
+    // Compute intersection points (x,y) for two expressions over the current visible range.
+    private java.util.List<Point2D.Double> computeIntersections(String leftExpr, String rightExpr) {
+        java.util.List<Point2D.Double> roots = new java.util.ArrayList<>();
+
+        int samples = Math.min(1000, Math.max(200, getWidth()));
+        double step = (maxX - minX) / (double) samples;
+        double prevVal = Double.NaN;
+        double prevX = minX;
+        for (int i = 0; i <= samples; i++) {
+            double x = minX + i * step;
+            try {
+                double vLeft = evaluator.evaluate(leftExpr, x);
+                double vRight = evaluator.evaluate(rightExpr, x);
+                double v = vLeft - vRight;
+
+                if (!Double.isNaN(prevVal) && !Double.isInfinite(prevVal) && !Double.isNaN(v) && !Double.isInfinite(v)) {
+                    if (prevVal == 0.0 || v == 0.0 || (prevVal > 0 && v < 0) || (prevVal < 0 && v > 0)) {
+                        double a = prevX;
+                        double b = x;
+                        double fa = prevVal;
+                        double root = Double.NaN;
+                        try {
+                            for (int it = 0; it < 40; it++) {
+                                double m = (a + b) / 2.0;
+                                double fm = evaluator.evaluate(leftExpr, m) - evaluator.evaluate(rightExpr, m);
+                                if (Double.isNaN(fm) || Double.isInfinite(fm)) break;
+                                if (Math.abs(fm) < 1e-8) { root = m; break; }
+                                if ((fa > 0 && fm < 0) || (fa < 0 && fm > 0)) { b = m; }
+                                else { a = m; fa = fm; }
+                            }
+                            if (Double.isNaN(root)) root = (a + b) / 2.0;
+                        } catch (Exception ex) {
+                            root = (a + b) / 2.0;
+                        }
+
+                        if (!Double.isNaN(root) && !Double.isInfinite(root)) {
+                            try {
+                                double y = evaluator.evaluate(leftExpr, root);
+                                Point2D.Double p = new Point2D.Double(root, y);
+                                // deduplicate close roots
+                                boolean add = true;
+                                for (Point2D.Double q : roots) {
+                                    if (Math.abs(q.x - p.x) < 1e-6) { add = false; break; }
+                                }
+                                if (add) roots.add(p);
+                            } catch (Exception ex) {
+                                // ignore
+                            }
+                        }
+                    }
+                }
+
+                prevVal = v;
+                prevX = x;
+            } catch (Exception ex) {
+                prevVal = Double.NaN;
+                prevX = x;
+            }
+        }
+
+        return roots;
     }
 
     /**
@@ -327,6 +484,62 @@ public class GraphPanel extends JPanel {
         
         Path2D path = new Path2D.Double();
         boolean firstPoint = true;
+        // Check if this function references a named intersection with an optional translation
+        // Patterns handled:
+        //   name(x)
+        //   name(x)-C  (vertical shift)
+        //   name(x-C)  (horizontal shift)
+        String expr = function.getExpression();
+        if (expr != null) {
+            // simple regex: name\(\s*x\s*\)\s*([+-]\s*\d+(?:\.\d+)?)?  OR name\(\s*x\s*([+-]\s*\d+(?:\.\d+)?)\)
+            Pattern p1 = Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*\\)\\s*([+-]\\s*\\d+(?:\\.\\d+)?)?\\s*$");
+            Pattern p2 = Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*\\(\\s*x\\s*([+-]\\s*\\d+(?:\\.\\d+)?)\\)\\s*$");
+            Matcher m1 = p1.matcher(expr);
+            Matcher m2 = p2.matcher(expr);
+            if (m1.matches() || m2.matches()) {
+                String name = m1.matches() ? m1.group(1) : m2.group(1);
+                String vShiftStr = null;
+                String hShiftStr = null;
+                if (m1.matches()) {
+                    vShiftStr = m1.group(2);
+                } else {
+                    hShiftStr = m2.group(2);
+                }
+                if (name != null) {
+                    java.util.List<Point2D.Double> pts = namedIntersectionPoints.get(name.toLowerCase());
+                    if (pts != null) {
+                        // draw points transformed by shifts
+                        double vShift = 0.0;
+                        double hShift = 0.0;
+                        if (vShiftStr != null) {
+                            vShift = Double.parseDouble(vShiftStr.replaceAll("\\s+", ""));
+                        }
+                        if (hShiftStr != null) {
+                            hShift = Double.parseDouble(hShiftStr.replaceAll("\\s+", ""));
+                        }
+
+                        // Draw a polyline connecting the transformed intersection points (sorted by x)
+                        java.util.List<Point2D.Double> copy = new java.util.ArrayList<>(pts);
+                        copy.sort((a, b) -> Double.compare(a.x, b.x));
+                        boolean first = true;
+                        for (Point2D.Double p : copy) {
+                            double tx = p.x + hShift;
+                            double ty = p.y + vShift;
+                            int sx = xToScreen(tx);
+                            int sy = yToScreen(ty);
+                            if (first) {
+                                path.moveTo(sx, sy);
+                                first = false;
+                            } else {
+                                path.lineTo(sx, sy);
+                            }
+                        }
+                        g2.draw(path);
+                        return;
+                    }
+                }
+            }
+        }
         // Adaptive sampling: choose number of samples proportional to viewport width
         // and inversely proportional to the visible X range (zoom level).
         double viewRangeX = maxX - minX;
@@ -349,7 +562,7 @@ public class GraphPanel extends JPanel {
         // Step in screen pixels between successive samples
         double step = (double) pixelWidth / (double) sampleCount;
 
-        for (double sx = 0.0; sx < pixelWidth; sx += step) {
+    for (double sx = 0.0; sx < pixelWidth; sx += step) {
             int screenX = (int) Math.round(sx);
             double x = screenToX(screenX);
 
