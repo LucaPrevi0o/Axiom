@@ -115,7 +115,6 @@ build_jar() {
 }
 
 run_main() {
-  compile
   echo "Running $MAIN_CLASS..."
   if [ -n "$CLASSPATH_JARS" ]; then
     java -cp "$JAVA_OUT_DIR:$CLASSPATH_JARS" "$MAIN_CLASS"
@@ -142,6 +141,7 @@ case "${1-}" in
     build_jar
     ;;
   all)
+    compile
     run_main
     ;;
   clean)
