@@ -11,6 +11,9 @@ public class GraphFunction {
     private boolean intersection = false;
     private String lhsExpr;
     private String rhsExpr;
+    // region mode: if true, represents a region like f(x)>=g(x)
+    private boolean region = false;
+    private String regionOperator; // ">=", "<=", ">", "<"
     
     /**
      * Constructor to create a graph function
@@ -34,6 +37,22 @@ public class GraphFunction {
     }
 
     /**
+     * Create a GraphFunction that represents a region (e.g., f(x)>=g(x))
+     * @param lhs Left-hand side expression
+     * @param operator Comparison operator: ">=", "<=", ">", "<"
+     * @param rhs Right-hand side expression
+     * @param color Color for the region border and fill
+     */
+    public static GraphFunction region(String lhs, String operator, String rhs, Color color) {
+        GraphFunction gf = new GraphFunction(null, color);
+        gf.region = true;
+        gf.lhsExpr = lhs;
+        gf.rhsExpr = rhs;
+        gf.regionOperator = operator;
+        return gf;
+    }
+
+    /**
      * Optional: set a name for this function (useful for intersection definitions like h(x)=(...=...))
      */
     public void setName(String name) { this.name = name; }
@@ -46,6 +65,9 @@ public class GraphFunction {
     public boolean isIntersection() { return intersection; }
     public String getLhsExpr() { return lhsExpr; }
     public String getRhsExpr() { return rhsExpr; }
+    
+    public boolean isRegion() { return region; }
+    public String getRegionOperator() { return regionOperator; }
     
     /**
      * Get the expression

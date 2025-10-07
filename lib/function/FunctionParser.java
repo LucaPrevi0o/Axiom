@@ -20,6 +20,9 @@ public class FunctionParser {
     private static final Pattern INTERSECTION_PATTERN = 
         Pattern.compile("^\\s*\\(.*=.*\\)\\s*$");
     
+    private static final Pattern REGION_PATTERN = 
+        Pattern.compile("^\\s*\\(.*(?:>=|<=|>|<).*\\)\\s*$");
+    
     /**
      * Result of parsing function entries
      */
@@ -58,6 +61,8 @@ public class FunctionParser {
             
             if (isNamedFunction(expr)) {
                 parseNamedFunction(expr, color, namedFunctions, graphFunctions);
+            } else if (isRegion(expr)) {
+                parseRegion(expr, color, graphFunctions);
             } else if (isIntersection(expr)) {
                 parseIntersection(expr, color, graphFunctions);
             } else {
@@ -87,6 +92,15 @@ public class FunctionParser {
     }
     
     /**
+     * Check if an expression is a region (e.g., f(x)>=g(x))
+     * @param expr Expression to check
+     * @return true if region
+     */
+    public static boolean isRegion(String expr) {
+        return REGION_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
      * Parse a named function definition
      */
     private static void parseNamedFunction(String expr, Color color, 
@@ -102,7 +116,36 @@ public class FunctionParser {
         namedFunctions.put(name.toLowerCase(), rhs);
         
         // Add to graph functions for plotting
-        if (isIntersection(rhs)) {
+        if (isRegion(rhs)) {
+            // Named region: h(x)=(f>=g)
+            String inside = rhs.substring(1, rhs.length() - 1).trim();
+            
+            // Find the operator
+            String operator = null;
+            int opIdx = -1;
+            
+            if (inside.contains(">=")) {
+                operator = ">=";
+                opIdx = inside.indexOf(">=");
+            } else if (inside.contains("<=")) {
+                operator = "<=";
+                opIdx = inside.indexOf("<=");
+            } else if (inside.contains(">")) {
+                operator = ">";
+                opIdx = inside.indexOf(">");
+            } else if (inside.contains("<")) {
+                operator = "<";
+                opIdx = inside.indexOf("<");
+            }
+            
+            if (operator != null && opIdx > 0) {
+                String leftExpr = inside.substring(0, opIdx).trim();
+                String rightExpr = inside.substring(opIdx + operator.length()).trim();
+                GraphFunction gf = GraphFunction.region(leftExpr, operator, rightExpr, color);
+                gf.setName(name);
+                graphFunctions.add(gf);
+            }
+        } else if (isIntersection(rhs)) {
             // Named intersection: h(x)=(f=g)
             String inside = rhs.substring(1, rhs.length() - 1).trim();
             int innerEqIdx = inside.indexOf('=');
@@ -134,6 +177,40 @@ public class FunctionParser {
             String left = inside.substring(0, eqIdx).trim();
             String right = inside.substring(eqIdx + 1).trim();
             graphFunctions.add(GraphFunction.intersection(left, right, color));
+        }
+    }
+    
+    /**
+     * Parse a region expression (e.g., (f(x)>=g(x)))
+     */
+    private static void parseRegion(String expr, Color color,
+                                    List<GraphFunction> graphFunctions) {
+        String inside = expr.trim();
+        inside = inside.substring(1, inside.length() - 1).trim();
+        
+        // Find the operator (>=, <=, >, <)
+        String operator = null;
+        int opIdx = -1;
+        
+        // Check for >= and <= first (two-character operators)
+        if (inside.contains(">=")) {
+            operator = ">=";
+            opIdx = inside.indexOf(">=");
+        } else if (inside.contains("<=")) {
+            operator = "<=";
+            opIdx = inside.indexOf("<=");
+        } else if (inside.contains(">")) {
+            operator = ">";
+            opIdx = inside.indexOf(">");
+        } else if (inside.contains("<")) {
+            operator = "<";
+            opIdx = inside.indexOf("<");
+        }
+        
+        if (operator != null && opIdx > 0) {
+            String left = inside.substring(0, opIdx).trim();
+            String right = inside.substring(opIdx + operator.length()).trim();
+            graphFunctions.add(GraphFunction.region(left, operator, right, color));
         }
     }
     

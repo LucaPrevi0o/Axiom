@@ -18,6 +18,7 @@ public class GraphRenderer {
     private final GridRenderer gridRenderer;
     private final AxisRenderer axisRenderer;
     private final FunctionPlotter functionPlotter;
+    private final RegionRenderer regionRenderer;
     private final IntersectionFinder intersectionFinder;
     private final GraphBounds bounds;
     
@@ -35,6 +36,7 @@ public class GraphRenderer {
         this.gridRenderer = new GridRenderer();
         this.axisRenderer = new AxisRenderer();
         this.functionPlotter = new FunctionPlotter(evaluator, bounds);
+        this.regionRenderer = new RegionRenderer(evaluator, intersectionFinder, bounds);
     }
     
     /**
@@ -53,8 +55,30 @@ public class GraphRenderer {
         // Delegate to specialized renderers
         gridRenderer.drawGrid(g2, bounds, width, height);
         axisRenderer.drawAxes(g2, bounds, width, height);
+        
+        // Draw regions first (behind functions)
+        drawRegions(g2, functions, width, height);
+        
+        // Draw functions and intersections on top
         drawFunctions(g2, functions, width, height);
         drawIntersections(g2, functions, width, height);
+    }
+    
+    /**
+     * Draw all regions
+     */
+    private void drawRegions(Graphics2D g2, List<GraphFunction> functions,
+                            int width, int height) {
+        for (GraphFunction function : functions) {
+            if (function.isRegion()) {
+                String leftExpr = function.getLhsExpr();
+                String rightExpr = function.getRhsExpr();
+                String operator = function.getRegionOperator();
+                Color color = function.getColor();
+                
+                regionRenderer.renderRegion(g2, leftExpr, operator, rightExpr, color, width, height);
+            }
+        }
     }
     
     /**
@@ -63,7 +87,7 @@ public class GraphRenderer {
     private void drawFunctions(Graphics2D g2, List<GraphFunction> functions, 
                                int width, int height) {
         for (GraphFunction function : functions) {
-            if (!function.isIntersection()) {
+            if (!function.isIntersection() && !function.isRegion()) {
                 String expr = function.getExpression();
                 Color color = function.getColor();
                 
