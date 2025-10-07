@@ -39,6 +39,19 @@ public class FunctionEntry extends JPanel {
         colorIndicator.setBackground(functionColor);
         colorIndicator.setPreferredSize(new Dimension(20, 20));
         colorIndicator.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        // Open a color chooser when the color indicator is clicked
+        colorIndicator.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        colorIndicator.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                Color chosen = JColorChooser.showDialog(FunctionEntry.this, "Choose Function Color", functionColor);
+                if (chosen != null) {
+                    functionColor = chosen;
+                    colorIndicator.setBackground(functionColor);
+                    parent.updateGraph();
+                }
+            }
+        });
         
         enableCheckbox = new JCheckBox();
         enableCheckbox.setSelected(true);
