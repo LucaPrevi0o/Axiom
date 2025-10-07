@@ -90,8 +90,16 @@ public class ExpressionParser {
         } else if (ch >= 'a' && ch <= 'z') {
             while (ch >= 'a' && ch <= 'z') nextChar();
             String func = str.substring(startPos, this.pos);
-            x = parseFactor();
-            x = applyFunction(func, x);
+            // Support constants like pi and e
+            if (func.equals("pi")) {
+                x = Math.PI;
+            } else if (func.equals("e")) {
+                x = Math.E;
+            } else {
+                // function application: func followed by factor (e.g., sin x or sin(x))
+                x = parseFactor();
+                x = applyFunction(func, x);
+            }
         } else {
             throw new Exception("Unexpected: " + (char) ch);
         }
