@@ -1,3 +1,4 @@
+package function;
 import javax.swing.*;
 import java.awt.*;
 

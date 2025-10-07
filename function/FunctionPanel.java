@@ -1,4 +1,9 @@
+package function;
 import javax.swing.*;
+
+import graph.GraphFunction;
+import graph.GraphPanel;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;

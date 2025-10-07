@@ -1,4 +1,8 @@
+package graph;
 import javax.swing.*;
+
+import expression.ExpressionEvaluator;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;

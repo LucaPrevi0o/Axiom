@@ -1,6 +1,8 @@
 import javax.swing.*;
 
-public class Main {
+import graph.GraphingCalculator;
+
+public class Axiom {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             GraphingCalculator calculator = new GraphingCalculator();

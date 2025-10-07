@@ -1,4 +1,8 @@
+package graph;
 import javax.swing.*;
+
+import function.FunctionPanel;
+
 import java.awt.*;
 
 public class GraphingCalculator extends JFrame {
