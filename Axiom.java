@@ -1,6 +1,6 @@
 import javax.swing.*;
 
-import graph.GraphingCalculator;
+import lib.graph.GraphingCalculator;
 
 public class Axiom {
     public static void main(String[] args) {

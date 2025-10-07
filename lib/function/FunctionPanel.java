@@ -1,8 +1,8 @@
-package function;
+package lib.function;
 import javax.swing.*;
 
-import graph.GraphFunction;
-import graph.GraphPanel;
+import lib.graph.GraphFunction;
+import lib.graph.GraphPanel;
 
 import java.awt.*;
 import java.util.ArrayList;

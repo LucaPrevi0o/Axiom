@@ -1,4 +1,4 @@
-package function;
+package lib.function;
 import javax.swing.*;
 import java.awt.*;
 // JLaTeXMath is optional; use reflection so code compiles without the library

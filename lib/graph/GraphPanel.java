@@ -1,7 +1,7 @@
-package graph;
+package lib.graph;
 import javax.swing.*;
 
-import expression.ExpressionEvaluator;
+import lib.expression.ExpressionEvaluator;
 
 import java.awt.*;
 import java.awt.event.*;

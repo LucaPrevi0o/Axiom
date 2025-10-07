@@ -1,7 +1,7 @@
-package graph;
+package lib.graph;
 import javax.swing.*;
 
-import function.FunctionPanel;
+import lib.function.FunctionPanel;
 
 import java.awt.*;
 

@@ -1,4 +1,4 @@
-package graph;
+package lib.graph;
 import java.awt.Color;
 
 public class GraphFunction {

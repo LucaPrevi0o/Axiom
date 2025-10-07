@@ -1,4 +1,4 @@
-package expression;
+package lib.expression;
 import java.util.Map;
 
 public class ExpressionParser {

@@ -54,15 +54,27 @@ compile() {
   mkdir -p "$JAVA_OUT_DIR"
   # collect project java files (excluding build dir)
   proj_srcs=$(find "$ROOT_DIR" -maxdepth 2 -name "*.java" -not -path "$JAVA_OUT_DIR/*")
-  # collect lib module main sources (lib/*/src/main/java)
+  # collect lib module java sources recursively under lib/* if no jar exists for the module
   lib_srcs=""
   if [ -d "$LIB_DIR" ]; then
     for m in "$LIB_DIR"/*; do
+      # if a jar for this module exists in lib/ root, skip compiling its sources
+      module_base=$(basename "$m")
+      if [ -f "$LIB_DIR/$module_base.jar" ]; then
+        # skip source compilation for this module since a jar is present
+        continue
+      fi
+      # Prefer standard Maven layout if present, otherwise include any .java files under the module
       if [ -d "$m/src/main/java" ]; then
+        paths=$(find "$m/src/main/java" -name "*.java")
+      else
+        paths=$(find "$m" -name "*.java")
+      fi
+      if [ -n "$paths" ]; then
         if [ -z "$lib_srcs" ]; then
-          lib_srcs=$(find "$m/src/main/java" -name "*.java")
+          lib_srcs="$paths"
         else
-          lib_srcs="$lib_srcs $(find "$m/src/main/java" -name "*.java")"
+          lib_srcs="$lib_srcs $paths"
         fi
       fi
     done
