@@ -49,28 +49,51 @@ A Java-based graphing calculator with support for mathematical functions, user-d
 
 ```
 Axiom/
-├── Axiom.java              # Main entry point
+├── Axiom.java                    # Main entry point
 ├── lib/
-│   ├── expression/         # Expression parsing and evaluation
+│   ├── constants/                # NEW: Centralized constants
+│   │   ├── GraphConstants.java   # Zoom, viewport defaults
+│   │   ├── RenderingConstants.java # Colors, strokes, samples
+│   │   ├── UIConstants.java      # UI dimensions, colors
+│   │   └── MathConstants.java    # Numerical precision, epsilon
+│   ├── util/                     # NEW: Utility classes
+│   │   ├── ValidationUtils.java  # Value validation
+│   │   └── FormattingUtils.java  # Number/tick formatting
+│   ├── expression/               # Expression parsing and evaluation
 │   │   ├── ExpressionEvaluator.java
-│   │   └── ExpressionParser.java
-│   ├── function/          # Function entry UI components
-│   │   ├── FunctionEntry.java
-│   │   ├── FunctionPanel.java
-│   │   └── FunctionParser.java      # NEW: Expression parsing utility
-│   ├── graph/             # Graphing components
-│   │   ├── GraphFunction.java
-│   │   ├── GraphPanel.java          # Refactored: Now a coordinator
-│   │   ├── GraphingCalculator.java
-│   │   ├── GraphBounds.java         # NEW: Coordinate management
-│   │   ├── IntersectionFinder.java  # NEW: Numerical methods
-│   │   ├── GraphRenderer.java       # NEW: Rendering logic
-│   │   └── ViewportManager.java     # NEW: Viewport operations
-│   └── jlatexmath.jar     # LaTeX rendering library (optional)
-├── jmake                  # Build script
-├── README.md              # This file
-├── REFACTORING_SUMMARY.md # Initial refactoring summary
-└── ADVANCED_REFACTORING.md # Advanced refactoring details
+│   │   ├── ExpressionParser.java
+│   │   ├── ExpressionFormatter.java # LaTeX/HTML rendering
+│   │   └── HtmlEscaper.java
+│   ├── function/                 # Function UI components
+│   │   ├── FunctionEntry.java    # Single function UI
+│   │   ├── FunctionPanel.java    # Function list manager
+│   │   ├── FunctionParser.java   # Expression parsing utility
+│   │   ├── FunctionColorManager.java # Color assignment
+│   │   ├── Parameter.java        # Parameter model
+│   │   ├── ParameterEntry.java   # Parameter UI with slider
+│   │   ├── ParameterSlider.java  # Slider component
+│   │   └── SimpleDocumentListener.java
+│   ├── graph/                    # Graphing components
+│   │   ├── GraphFunction.java    # Function model
+│   │   ├── GraphPanel.java       # Main graph coordinator
+│   │   ├── GraphingCalculator.java # Main window
+│   │   ├── GraphBounds.java      # Coordinate management
+│   │   ├── IntersectionFinder.java # Numerical methods
+│   │   ├── GraphRenderer.java    # Rendering coordinator
+│   │   ├── ViewportManager.java  # Zoom/pan operations
+│   │   └── rendering/            # Specialized renderers
+│   │       ├── AxisRenderer.java # Axes and tick marks
+│   │       ├── GridRenderer.java # Grid lines
+│   │       ├── FunctionPlotter.java # Function curves
+│   │       ├── RegionRenderer.java  # Inequality regions
+│   │       └── TickCalculator.java  # DEPRECATED: Use FormattingUtils
+│   └── jlatexmath.jar            # LaTeX rendering library (optional)
+├── java/                         # Compiled .class files
+├── jmake                         # Build script (Unix/macOS)
+├── jmake.ps1                     # Build script (Windows PowerShell)
+├── README.md                     # This file
+├── REFACTORING_SUMMARY.md        # Refactoring overview
+└── REFACTORING_DETAILS.md        # Detailed before/after comparison
 ```
 
 ## Architecture
