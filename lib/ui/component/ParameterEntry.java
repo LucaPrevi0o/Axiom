@@ -52,6 +52,20 @@ public class ParameterEntry extends JPanel {
         
         // Create slider
         this.slider = new JSlider(0, UIConstants.SLIDER_STEPS);
+        
+        // For discrete parameters, configure slider differently
+        if (parameter.isDiscrete()) {
+            int stepCount = parameter.getDiscreteStepCount();
+            slider.setMaximum(stepCount - 1);
+            slider.setSnapToTicks(true);
+            slider.setPaintTicks(true);
+            // Only show major tick labels if reasonable number of steps
+            if (stepCount <= 10) {
+                slider.setMajorTickSpacing(1);
+                slider.setPaintLabels(true);
+            }
+        }
+        
         updateSliderFromParameter();
         
         // Create value label
@@ -164,26 +178,46 @@ public class ParameterEntry extends JPanel {
      * Update slider position from parameter value
      */
     private void updateSliderFromParameter() {
-        double range = parameter.getRange();
-        double normalized = (parameter.getCurrentValue() - parameter.getMinValue()) / range;
-        int sliderValue = (int) Math.round(normalized * UIConstants.SLIDER_STEPS);
-        slider.setValue(sliderValue);
+        if (parameter.isDiscrete()) {
+            // For discrete parameters, slider has one position per integer value
+            int sliderValue = (int) (parameter.getCurrentValue() - parameter.getMinValue());
+            slider.setValue(sliderValue);
+        } else {
+            // For continuous parameters, use normalized position
+            double range = parameter.getRange();
+            double normalized = (parameter.getCurrentValue() - parameter.getMinValue()) / range;
+            int sliderValue = (int) Math.round(normalized * UIConstants.SLIDER_STEPS);
+            slider.setValue(sliderValue);
+        }
     }
     
     /**
      * Update parameter value from slider position
      */
     private void updateParameterFromSlider() {
-        double normalized = (double) slider.getValue() / (double) UIConstants.SLIDER_STEPS;
-        double value = parameter.getMinValue() + normalized * parameter.getRange();
-        parameter.setCurrentValue(value);
+        if (parameter.isDiscrete()) {
+            // For discrete parameters, slider position directly maps to integer value
+            double value = parameter.getMinValue() + slider.getValue();
+            parameter.setCurrentValue(value);
+        } else {
+            // For continuous parameters, normalize slider position
+            double normalized = (double) slider.getValue() / (double) UIConstants.SLIDER_STEPS;
+            double value = parameter.getMinValue() + normalized * parameter.getRange();
+            parameter.setCurrentValue(value);
+        }
     }
     
     /**
      * Update value label text
      */
     private void updateValueLabel() {
-        valueLabel.setText(FormattingUtils.formatDecimal(parameter.getCurrentValue(), 2));
+        if (parameter.isDiscrete()) {
+            // Show integer value for discrete parameters
+            valueLabel.setText(String.valueOf((int) parameter.getCurrentValue()));
+        } else {
+            // Show decimal value for continuous parameters
+            valueLabel.setText(FormattingUtils.formatDecimal(parameter.getCurrentValue(), 2));
+        }
         valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
     }
     

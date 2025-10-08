@@ -6,12 +6,12 @@ import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.util.Map;
 
 /**
  * A function representing a single point with coordinates that can be
  * mathematical expressions or parameters (e.g., P=(a,0) where 'a' is a parameter).
+ * Can also expand to multiple points if coordinates reference a set (e.g., P=(0,Q) where Q={1,2,3}).
  * Unlike PointSetFunction, this re-evaluates coordinates each time.
  */
 public class ParametricPointFunction extends Function {
@@ -19,6 +19,7 @@ public class ParametricPointFunction extends Function {
     private final String xExpression;
     private final String yExpression;
     private final ExpressionEvaluator evaluator;
+    private Map<String, SetFunction> availableSets; // Sets that can be referenced
     
     /**
      * Create a parametric point function
@@ -34,6 +35,16 @@ public class ParametricPointFunction extends Function {
         this.xExpression = xExpression;
         this.yExpression = yExpression;
         this.evaluator = evaluator;
+        this.availableSets = new java.util.HashMap<>();
+    }
+    
+    /**
+     * Set the available sets that can be referenced in coordinates
+     * @param sets Map of set name to SetFunction
+     */
+    public void setAvailableSets(Map<String, SetFunction> sets) {
+        this.availableSets = sets != null ? sets : new java.util.HashMap<>();
+        invalidateCache(); // Recompute points when sets change
     }
     
     /**
@@ -54,21 +65,72 @@ public class ParametricPointFunction extends Function {
     protected List<Point2D.Double> computePoints(GraphBounds bounds, int width, int height) {
         List<Point2D.Double> points = new ArrayList<>();
         
-        try {
-            // Evaluate both coordinates using evaluateConstant
-            // This allows expressions like f(4) to work correctly without x substitution
-            double x = evaluator.evaluateConstant(xExpression);
-            double y = evaluator.evaluateConstant(yExpression);
-            
-            // Only add if both coordinates are valid
-            if (ValidationUtils.areAllValid(x, y)) {
-                points.add(new Point2D.Double(x, y));
+        // Check if either coordinate references a set
+        SetFunction xSet = getReferencedSet(xExpression);
+        SetFunction ySet = getReferencedSet(yExpression);
+        
+        if (xSet != null && ySet != null) {
+            // Both coordinates are sets - create cartesian product
+            for (double x : xSet.getValues()) {
+                for (double y : ySet.getValues()) {
+                    if (ValidationUtils.areAllValid(x, y)) {
+                        points.add(new Point2D.Double(x, y));
+                    }
+                }
             }
-        } catch (Exception e) {
-            // If evaluation fails, return empty list (point not visible)
+        } else if (xSet != null) {
+            // X is a set, Y is an expression - create points for each X value
+            for (double x : xSet.getValues()) {
+                try {
+                    double y = evaluator.evaluateConstant(yExpression);
+                    if (ValidationUtils.areAllValid(x, y)) {
+                        points.add(new Point2D.Double(x, y));
+                    }
+                } catch (Exception e) {
+                    // Skip invalid Y values
+                }
+            }
+        } else if (ySet != null) {
+            // Y is a set, X is an expression - create points for each Y value
+            try {
+                double x = evaluator.evaluateConstant(xExpression);
+                for (double y : ySet.getValues()) {
+                    if (ValidationUtils.areAllValid(x, y)) {
+                        points.add(new Point2D.Double(x, y));
+                    }
+                }
+            } catch (Exception e) {
+                // Skip if X expression is invalid
+            }
+        } else {
+            // Neither coordinate is a set - single point
+            try {
+                double x = evaluator.evaluateConstant(xExpression);
+                double y = evaluator.evaluateConstant(yExpression);
+                
+                if (ValidationUtils.areAllValid(x, y)) {
+                    points.add(new Point2D.Double(x, y));
+                }
+            } catch (Exception e) {
+                // If evaluation fails, return empty list (point not visible)
+            }
         }
         
         return points;
+    }
+    
+    /**
+     * Check if an expression is a simple reference to a set
+     * @param expr Expression to check
+     * @return SetFunction if expression is a set name, null otherwise
+     */
+    private SetFunction getReferencedSet(String expr) {
+        String trimmed = expr.trim();
+        // Check if it's a simple identifier that matches a set name
+        if (trimmed.matches("[A-Za-z_]\\w*")) {
+            return availableSets.get(trimmed);
+        }
+        return null;
     }
     
     @Override

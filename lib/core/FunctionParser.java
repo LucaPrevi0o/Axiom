@@ -25,8 +25,21 @@ public class FunctionParser {
     private static final Pattern REGION_PATTERN = 
         Pattern.compile("^\\s*\\(.*(?:>=|<=|>|<).*\\)\\s*$");
     
+    // Continuous parameter: a=[1:5] (square brackets with colon)
     private static final Pattern PARAMETER_PATTERN = 
         Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\[\\s*(-?\\d+\\.?\\d*)\\s*:\\s*(-?\\d+\\.?\\d*)\\s*\\]\\s*$");
+    
+    // Discrete parameter: a=[1..10] (square brackets with double dots for slider)
+    private static final Pattern DISCRETE_PARAMETER_PATTERN = 
+        Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\[\\s*(-?\\d+)\\s*\\.\\.\\s*(-?\\d+)\\s*\\]\\s*$");
+    
+    // Explicit set: a={1,2,3,4} (curly brackets with comma-separated values)
+    private static final Pattern EXPLICIT_SET_PATTERN = 
+        Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\{\\s*(-?\\d+(?:\\.\\d+)?)(?:\\s*,\\s*-?\\d+(?:\\.\\d+)?)*\\s*\\}\\s*$");
+    
+    // Range set: b={1:10} (curly brackets with colon for integer range)
+    private static final Pattern RANGE_SET_PATTERN = 
+        Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\{\\s*(-?\\d+)\\s*:\\s*(-?\\d+)\\s*\\}\\s*$");
     
     // Pattern for point functions: P=(x,y) where x and y can be complex expressions
     // We use a simpler pattern and parse the coordinates manually to handle nested parentheses
@@ -82,6 +95,12 @@ public class FunctionParser {
                 if (param != null) {
                     parameters.add(param);
                 }
+            } else if (isSet(expr)) {
+                // Handle set definitions (explicit or range)
+                Function setFunc = factory.createSetFunction(expr, color);
+                if (setFunc != null) {
+                    functions.add(setFunc);
+                }
             } else if (isPoint(expr)) {
                 parsePoint(expr, color, functions, factory);
             } else if (isNamedFunction(expr)) {
@@ -123,12 +142,41 @@ public class FunctionParser {
     }
     
     /**
-     * Check if an expression is a parameter definition (e.g., c=[2:5])
+     * Check if an expression is a parameter definition (e.g., c=[2:5] or b=[1..10])
      * @param expr Expression to check
      * @return true if parameter
      */
     public static boolean isParameter(String expr) {
-        return PARAMETER_PATTERN.matcher(expr).matches();
+        return PARAMETER_PATTERN.matcher(expr).matches() || 
+               DISCRETE_PARAMETER_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
+     * Check if an expression is a set definition (explicit or range)
+     * @param expr Expression to check
+     * @return true if set
+     */
+    public static boolean isSet(String expr) {
+        return EXPLICIT_SET_PATTERN.matcher(expr).matches() || 
+               RANGE_SET_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
+     * Check if an expression is an explicit set (e.g., a={1,2,3,4})
+     * @param expr Expression to check
+     * @return true if explicit set
+     */
+    public static boolean isExplicitSet(String expr) {
+        return EXPLICIT_SET_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
+     * Check if an expression is a range set (e.g., b={1:10})
+     * @param expr Expression to check
+     * @return true if range set
+     */
+    public static boolean isRangeSet(String expr) {
+        return RANGE_SET_PATTERN.matcher(expr).matches();
     }
     
     /**
@@ -208,11 +256,30 @@ public class FunctionParser {
     }
     
     /**
-     * Parse a parameter definition (e.g., c=[2:5])
+     * Parse a parameter definition (e.g., c=[2:5] or b=[1..10])
      * @param expr Expression to parse
      * @return Parameter object or null if invalid
      */
     public static Parameter parseParameter(String expr) {
+        // Try discrete parameter first (double dot separator)
+        java.util.regex.Matcher discreteMatcher = DISCRETE_PARAMETER_PATTERN.matcher(expr);
+        if (discreteMatcher.matches()) {
+            try {
+                String name = discreteMatcher.group(1);
+                int min = Integer.parseInt(discreteMatcher.group(2));
+                int max = Integer.parseInt(discreteMatcher.group(3));
+                
+                if (min >= max) {
+                    return null; // Invalid range
+                }
+                
+                return new Parameter(name, min, max, true); // true = discrete
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        
+        // Try continuous parameter (colon separator)
         java.util.regex.Matcher matcher = PARAMETER_PATTERN.matcher(expr);
         if (matcher.matches()) {
             try {
@@ -224,12 +291,73 @@ public class FunctionParser {
                     return null; // Invalid range
                 }
                 
-                return new Parameter(name, min, max);
+                return new Parameter(name, min, max, false); // false = continuous
             } catch (NumberFormatException e) {
                 return null;
             }
         }
         return null;
+    }
+    
+    /**
+     * Parse set name and values from explicit set (e.g., a={1,2,3,4})
+     * @param expr Expression to parse
+     * @return Object array [String name, double[] values] or null if invalid
+     */
+    public static Object[] parseExplicitSet(String expr) {
+        java.util.regex.Matcher matcher = EXPLICIT_SET_PATTERN.matcher(expr);
+        if (!matcher.matches()) {
+            return null;
+        }
+        
+        try {
+            String name = matcher.group(1);
+            
+            // Extract all values from the braces
+            int openBrace = expr.indexOf('{');
+            int closeBrace = expr.lastIndexOf('}');
+            if (openBrace == -1 || closeBrace == -1) {
+                return null;
+            }
+            
+            String content = expr.substring(openBrace + 1, closeBrace).trim();
+            String[] parts = content.split("\\s*,\\s*");
+            
+            double[] values = new double[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                values[i] = Double.parseDouble(parts[i]);
+            }
+            
+            return new Object[] { name, values };
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Parse set name and range from range set (e.g., b={1:10})
+     * @param expr Expression to parse
+     * @return Object array [String name, int min, int max] or null if invalid
+     */
+    public static Object[] parseRangeSet(String expr) {
+        java.util.regex.Matcher matcher = RANGE_SET_PATTERN.matcher(expr);
+        if (!matcher.matches()) {
+            return null;
+        }
+        
+        try {
+            String name = matcher.group(1);
+            int min = Integer.parseInt(matcher.group(2));
+            int max = Integer.parseInt(matcher.group(3));
+            
+            if (min >= max) {
+                return null; // Invalid range
+            }
+            
+            return new Object[] { name, min, max };
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
     
     /**

@@ -7,6 +7,7 @@ import lib.model.Function;
 import lib.model.GraphBounds;
 import lib.model.Parameter;
 import lib.model.ParametricPointFunction;
+import lib.model.SetFunction;
 import lib.model.ViewportManager;
 import lib.rendering.GraphRenderer;
 import lib.rendering.IntersectionFinder;
@@ -190,8 +191,25 @@ public class GraphPanel extends JPanel {
      */
     public void setFunctions(List<Function> functions) {
         this.functions = functions;
-        // Invalidate caches when functions change
+        
+        // Build a map of sets for parametric points to reference
+        java.util.Map<String, SetFunction> setMap = new java.util.HashMap<>();
         for (Function function : functions) {
+            if (function instanceof SetFunction) {
+                SetFunction setFunc = (SetFunction) function;
+                String setName = setFunc.getName();
+                if (setName != null) {
+                    setMap.put(setName, setFunc);
+                }
+            }
+        }
+        
+        // Pass sets to all parametric point functions
+        for (Function function : functions) {
+            if (function instanceof ParametricPointFunction) {
+                ((ParametricPointFunction) function).setAvailableSets(setMap);
+            }
+            // Invalidate caches when functions change
             function.invalidateCache();
         }
     }
@@ -336,6 +354,11 @@ public class GraphPanel extends JPanel {
             double newValue = Math.max(draggedParamObjX.getMinValue(), 
                               Math.min(draggedParamObjX.getMaxValue(), graphX));
             
+            // Round to nearest integer if parameter is discrete
+            if (draggedParamObjX.isDiscrete()) {
+                newValue = Math.round(newValue);
+            }
+            
             // Update parameter value
             parameters.put(draggedParameterX, newValue);
             draggedParamObjX.setCurrentValue(newValue);
@@ -351,6 +374,11 @@ public class GraphPanel extends JPanel {
             // Clamp to parameter bounds
             double newValue = Math.max(draggedParamObjY.getMinValue(), 
                               Math.min(draggedParamObjY.getMaxValue(), graphY));
+            
+            // Round to nearest integer if parameter is discrete
+            if (draggedParamObjY.isDiscrete()) {
+                newValue = Math.round(newValue);
+            }
             
             // Update parameter value
             parameters.put(draggedParameterY, newValue);

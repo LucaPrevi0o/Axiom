@@ -9,19 +9,33 @@ public class Parameter {
     private final double minValue;
     private final double maxValue;
     private double currentValue;
+    private final boolean discrete; // true for integer-only values (e.g., [1;5])
+    
+    /**
+     * Create a continuous parameter with a range
+     * @param name Parameter name
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     */
+    public Parameter(String name, double minValue, double maxValue) {
+        this(name, minValue, maxValue, false);
+    }
     
     /**
      * Create a parameter with a range
      * @param name Parameter name
      * @param minValue Minimum value
      * @param maxValue Maximum value
+     * @param discrete true for integer-only values, false for continuous
      */
-    public Parameter(String name, double minValue, double maxValue) {
+    public Parameter(String name, double minValue, double maxValue, boolean discrete) {
         this.name = name;
         this.minValue = minValue;
         this.maxValue = maxValue;
+        this.discrete = discrete;
         // Start at the middle of the range
-        this.currentValue = (minValue + maxValue) / 2.0;
+        double midValue = (minValue + maxValue) / 2.0;
+        this.currentValue = discrete ? Math.round(midValue) : midValue;
     }
     
     /**
@@ -32,10 +46,24 @@ public class Parameter {
      * @param initialValue Initial value
      */
     public Parameter(String name, double minValue, double maxValue, double initialValue) {
+        this(name, minValue, maxValue, initialValue, false);
+    }
+    
+    /**
+     * Create a parameter with initial value
+     * @param name Parameter name
+     * @param minValue Minimum value
+     * @param maxValue Maximum value
+     * @param initialValue Initial value
+     * @param discrete true for integer-only values, false for continuous
+     */
+    public Parameter(String name, double minValue, double maxValue, double initialValue, boolean discrete) {
         this.name = name;
         this.minValue = minValue;
         this.maxValue = maxValue;
-        this.currentValue = Math.max(minValue, Math.min(maxValue, initialValue));
+        this.discrete = discrete;
+        double clampedValue = Math.max(minValue, Math.min(maxValue, initialValue));
+        this.currentValue = discrete ? Math.round(clampedValue) : clampedValue;
     }
     
     public String getName() {
@@ -55,15 +83,39 @@ public class Parameter {
     }
     
     public void setCurrentValue(double value) {
-        this.currentValue = Math.max(minValue, Math.min(maxValue, value));
+        double clampedValue = Math.max(minValue, Math.min(maxValue, value));
+        this.currentValue = discrete ? Math.round(clampedValue) : clampedValue;
     }
     
     public double getRange() {
         return maxValue - minValue;
     }
     
+    /**
+     * Check if this parameter only accepts integer values
+     * @return true for discrete (integer-only), false for continuous
+     */
+    public boolean isDiscrete() {
+        return discrete;
+    }
+    
+    /**
+     * Get the number of discrete steps (for discrete parameters)
+     * @return Number of integer values in range, or -1 for continuous
+     */
+    public int getDiscreteStepCount() {
+        if (!discrete) {
+            return -1;
+        }
+        return (int) (maxValue - minValue) + 1;
+    }
+    
     @Override
     public String toString() {
-        return name + "=[" + minValue + ":" + maxValue + "]";
+        if (discrete) {
+            return name + "=[" + (int)minValue + ".." + (int)maxValue + "]";
+        } else {
+            return name + "=[" + (int)minValue + ":" + (int)maxValue + "]";
+        }
     }
 }

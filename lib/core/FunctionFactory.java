@@ -135,6 +135,39 @@ public class FunctionFactory {
     }
     
     /**
+     * Create a set function from expression like "a={1,2,3}" or "b={1:10}"
+     * @param expression Set expression
+     * @param color Display color
+     * @return SetFunction or null if parsing fails
+     */
+    public Function createSetFunction(String expression, Color color) {
+        expression = expression.trim();
+        
+        // Try explicit set first: a={1,2,3,4}
+        if (FunctionParser.isExplicitSet(expression)) {
+            Object[] result = FunctionParser.parseExplicitSet(expression);
+            if (result != null && result.length == 2) {
+                String name = (String) result[0];
+                double[] values = (double[]) result[1];
+                return SetFunction.fromExplicitValues(name, values, color);
+            }
+        }
+        
+        // Try range set: b={1:10}
+        if (FunctionParser.isRangeSet(expression)) {
+            Object[] result = FunctionParser.parseRangeSet(expression);
+            if (result != null && result.length == 3) {
+                String name = (String) result[0];
+                int min = (Integer) result[1];
+                int max = (Integer) result[2];
+                return SetFunction.fromRange(name, min, max, color);
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
      * Check if expression is an intersection pattern: (expr=expr)
      */
     private boolean isIntersection(String expr) {
