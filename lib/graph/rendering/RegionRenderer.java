@@ -1,8 +1,10 @@
 package lib.graph.rendering;
 
+import lib.constants.RenderingConstants;
 import lib.expression.ExpressionEvaluator;
 import lib.graph.GraphBounds;
 import lib.graph.IntersectionFinder;
+import lib.util.ValidationUtils;
 import java.awt.*;
 import java.awt.geom.Path2D;
 
@@ -10,10 +12,6 @@ import java.awt.geom.Path2D;
  * Handles rendering of regions defined by inequalities (e.g., f(x)>=g(x))
  */
 public class RegionRenderer {
-    
-    private static final int BORDER_STROKE_WIDTH = 2;
-    private static final int FILL_ALPHA = 80; // Transparency for the fill (0-255)
-    private static final int SAMPLE_COUNT = 500; // Samples for region boundaries
     
     private final ExpressionEvaluator evaluator;
     private final GraphBounds bounds;
@@ -54,10 +52,10 @@ public class RegionRenderer {
     private void drawBorder(Graphics2D g2, String leftExpr, String rightExpr, 
                            Color color, int width, int height) {
         g2.setColor(color);
-        g2.setStroke(new BasicStroke(BORDER_STROKE_WIDTH));
+        g2.setStroke(RenderingConstants.BORDER_STROKE);
         
         Path2D path = new Path2D.Double();
-        double step = (double) width / (double) SAMPLE_COUNT;
+        double step = (double) width / (double) RenderingConstants.REGION_SAMPLE_COUNT;
         boolean firstPoint = true;
         
         for (double sx = 0.0; sx < width; sx += step) {
@@ -93,11 +91,12 @@ public class RegionRenderer {
     private void fillRegion(Graphics2D g2, String leftExpr, String operator, String rightExpr,
                            Color color, int width, int height) {
         // Create transparent fill color
-        Color fillColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), FILL_ALPHA);
+        Color fillColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), 
+                                    RenderingConstants.FILL_ALPHA);
         g2.setColor(fillColor);
         
         // Sample points across the screen width
-        double step = (double) width / (double) SAMPLE_COUNT;
+        double step = (double) width / (double) RenderingConstants.REGION_SAMPLE_COUNT;
         
         for (double sx = 0.0; sx < width; sx += step) {
             int screenX = (int) Math.round(sx);
@@ -107,7 +106,7 @@ public class RegionRenderer {
                 double leftY = evaluator.evaluate(leftExpr, x);
                 double rightY = evaluator.evaluate(rightExpr, x);
                 
-                if (!isValidValue(leftY) || !isValidValue(rightY)) continue;
+                if (!ValidationUtils.isValidValue(leftY) || !ValidationUtils.isValidValue(rightY)) continue;
                 
                 // Determine if we should fill based on operator
                 boolean shouldFill = false;
@@ -153,12 +152,5 @@ public class RegionRenderer {
                 // Skip invalid points
             }
         }
-    }
-    
-    /**
-     * Check if a value is valid (not NaN or infinite)
-     */
-    private boolean isValidValue(double value) {
-        return !Double.isNaN(value) && !Double.isInfinite(value);
     }
 }

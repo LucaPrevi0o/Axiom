@@ -1,5 +1,6 @@
 package lib.graph;
 
+import lib.constants.RenderingConstants;
 import lib.expression.ExpressionEvaluator;
 import lib.graph.rendering.*;
 import java.awt.*;
@@ -12,8 +13,6 @@ import java.util.Map;
  * Now delegates to specialized renderers
  */
 public class GraphRenderer {
-    
-    private static final int INTERSECTION_POINT_RADIUS = 4;
     
     private final GridRenderer gridRenderer;
     private final AxisRenderer axisRenderer;
@@ -140,7 +139,7 @@ public class GraphRenderer {
         }
         
         g2.setColor(color);
-        g2.setStroke(new BasicStroke(2));
+        g2.setStroke(RenderingConstants.FUNCTION_STROKE);
         
         // Sort and draw
         List<Point2D.Double> sorted = new java.util.ArrayList<>(points);
@@ -183,12 +182,8 @@ public class GraphRenderer {
             for (Point2D.Double point : intersections) {
                 int sx = bounds.xToScreen(point.x, width);
                 int sy = bounds.yToScreen(point.y, height);
-                g2.fillOval(
-                    sx - INTERSECTION_POINT_RADIUS,
-                    sy - INTERSECTION_POINT_RADIUS,
-                    INTERSECTION_POINT_RADIUS * 2,
-                    INTERSECTION_POINT_RADIUS * 2
-                );
+                int r = RenderingConstants.INTERSECTION_POINT_RADIUS;
+                g2.fillOval(sx - r, sy - r, r * 2, r * 2);
             }
         }
     }

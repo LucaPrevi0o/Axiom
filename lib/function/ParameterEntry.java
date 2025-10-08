@@ -1,9 +1,10 @@
 package lib.function;
 
+import lib.constants.UIConstants;
 import lib.expression.ExpressionFormatter;
+import lib.util.FormattingUtils;
 import javax.swing.*;
 import java.awt.*;
-import java.text.DecimalFormat;
 
 /**
  * UI component that displays a parameter with its definition and slider for dynamic control
@@ -17,10 +18,7 @@ public class ParameterEntry extends JPanel {
     private final JButton deleteButton;
     private final JPanel colorIndicator;
     private final ParameterChangeListener listener;
-    private final DecimalFormat decimalFormat;
     private final ExpressionFormatter formatter;
-    
-    private static final int SLIDER_STEPS = 1000; // Resolution for the slider
     
     /**
      * Listener interface for parameter value changes
@@ -39,7 +37,6 @@ public class ParameterEntry extends JPanel {
     public ParameterEntry(Parameter parameter, Color color, ParameterChangeListener listener) {
         this.parameter = parameter;
         this.listener = listener;
-        this.decimalFormat = new DecimalFormat("0.##");
         this.formatter = new ExpressionFormatter();
         
         // Create color indicator
@@ -48,12 +45,12 @@ public class ParameterEntry extends JPanel {
         // Create definition label
         this.definitionLabel = new JLabel();
         String definition = parameter.getName() + "=[" + 
-                          decimalFormat.format(parameter.getMinValue()) + ":" + 
-                          decimalFormat.format(parameter.getMaxValue()) + "]";
+                          FormattingUtils.formatDecimal(parameter.getMinValue(), 2) + ":" + 
+                          FormattingUtils.formatDecimal(parameter.getMaxValue(), 2) + "]";
         formatter.formatExpression(definition, definitionLabel);
         
         // Create slider
-        this.slider = new JSlider(0, SLIDER_STEPS);
+        this.slider = new JSlider(0, UIConstants.SLIDER_STEPS);
         updateSliderFromParameter();
         
         // Create value label
@@ -152,8 +149,8 @@ public class ParameterEntry extends JPanel {
         
         // Bottom panel: min and max labels
         JPanel rangePanel = new JPanel(new BorderLayout());
-        JLabel minLabel = new JLabel(decimalFormat.format(parameter.getMinValue()));
-        JLabel maxLabel = new JLabel(decimalFormat.format(parameter.getMaxValue()));
+        JLabel minLabel = new JLabel(FormattingUtils.formatDecimal(parameter.getMinValue(), 2));
+        JLabel maxLabel = new JLabel(FormattingUtils.formatDecimal(parameter.getMaxValue(), 2));
         minLabel.setFont(new Font("Arial", Font.PLAIN, 10));
         maxLabel.setFont(new Font("Arial", Font.PLAIN, 10));
         rangePanel.add(minLabel, BorderLayout.WEST);
@@ -168,7 +165,7 @@ public class ParameterEntry extends JPanel {
     private void updateSliderFromParameter() {
         double range = parameter.getRange();
         double normalized = (parameter.getCurrentValue() - parameter.getMinValue()) / range;
-        int sliderValue = (int) Math.round(normalized * SLIDER_STEPS);
+        int sliderValue = (int) Math.round(normalized * UIConstants.SLIDER_STEPS);
         slider.setValue(sliderValue);
     }
     
@@ -176,7 +173,7 @@ public class ParameterEntry extends JPanel {
      * Update parameter value from slider position
      */
     private void updateParameterFromSlider() {
-        double normalized = (double) slider.getValue() / (double) SLIDER_STEPS;
+        double normalized = (double) slider.getValue() / (double) UIConstants.SLIDER_STEPS;
         double value = parameter.getMinValue() + normalized * parameter.getRange();
         parameter.setCurrentValue(value);
     }
@@ -185,7 +182,7 @@ public class ParameterEntry extends JPanel {
      * Update value label text
      */
     private void updateValueLabel() {
-        valueLabel.setText(decimalFormat.format(parameter.getCurrentValue()));
+        valueLabel.setText(FormattingUtils.formatDecimal(parameter.getCurrentValue(), 2));
         valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
     }
     

@@ -1,5 +1,6 @@
 package lib.function;
 
+import lib.constants.UIConstants;
 import lib.expression.ExpressionFormatter;
 import javax.swing.*;
 import java.awt.*;
@@ -51,7 +52,7 @@ public class FunctionEntry extends JPanel {
             BorderFactory.createLineBorder(Color.LIGHT_GRAY),
             BorderFactory.createEmptyBorder(8, 8, 8, 8)
         ));
-        setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, UIConstants.MAX_FUNCTION_ENTRY_HEIGHT));
         setAlignmentX(Component.LEFT_ALIGNMENT);
         
         // Color indicator with click handler

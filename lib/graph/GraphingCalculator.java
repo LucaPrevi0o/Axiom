@@ -1,8 +1,8 @@
 package lib.graph;
-import javax.swing.*;
 
+import lib.constants.UIConstants;
 import lib.function.FunctionPanel;
-
+import javax.swing.*;
 import java.awt.*;
 
 public class GraphingCalculator extends JFrame {
@@ -13,10 +13,7 @@ public class GraphingCalculator extends JFrame {
     
     // Collapse state tracking
     private boolean isCollapsed = false;
-    private int lastDividerLocation = 280;
-    private static final int COLLAPSED_SIZE = 12;
-    private static final int MIN_EXPANDED_SIZE = 250;
-    private static final int MAX_EXPANDED_SIZE = 450;
+    private int lastDividerLocation = UIConstants.INITIAL_DIVIDER_LOCATION;
     
     /**
      * Constructor to set up the GUI components and layout
@@ -50,12 +47,12 @@ public class GraphingCalculator extends JFrame {
             graphPanel
         );
         
-        // Set initial divider location (280 pixels for function panel)
-        splitPane.setDividerLocation(280);
+        // Set initial divider location
+        splitPane.setDividerLocation(UIConstants.INITIAL_DIVIDER_LOCATION);
         
         // Set minimum sizes
         functionPanel.setMinimumSize(new Dimension(0, 0)); // Allow full collapse
-        graphPanel.setMinimumSize(new Dimension(400, 0));
+        graphPanel.setMinimumSize(new Dimension(UIConstants.MIN_GRAPH_PANEL_WIDTH, 0));
         
         // Add property change listener to enforce size constraints and track divider position
         splitPane.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, evt -> {
@@ -63,12 +60,12 @@ public class GraphingCalculator extends JFrame {
                 int location = splitPane.getDividerLocation();
                 
                 // Enforce min/max constraints when expanded
-                if (location < MIN_EXPANDED_SIZE) {
-                    SwingUtilities.invokeLater(() -> splitPane.setDividerLocation(MIN_EXPANDED_SIZE));
-                    lastDividerLocation = MIN_EXPANDED_SIZE;
-                } else if (location > MAX_EXPANDED_SIZE) {
-                    SwingUtilities.invokeLater(() -> splitPane.setDividerLocation(MAX_EXPANDED_SIZE));
-                    lastDividerLocation = MAX_EXPANDED_SIZE;
+                if (location < UIConstants.MIN_EXPANDED_SIZE) {
+                    SwingUtilities.invokeLater(() -> splitPane.setDividerLocation(UIConstants.MIN_EXPANDED_SIZE));
+                    lastDividerLocation = UIConstants.MIN_EXPANDED_SIZE;
+                } else if (location > UIConstants.MAX_EXPANDED_SIZE) {
+                    SwingUtilities.invokeLater(() -> splitPane.setDividerLocation(UIConstants.MAX_EXPANDED_SIZE));
+                    lastDividerLocation = UIConstants.MAX_EXPANDED_SIZE;
                 } else {
                     lastDividerLocation = location;
                 }
@@ -114,10 +111,10 @@ public class GraphingCalculator extends JFrame {
             // Expand to last known position (or default)
             int expandLocation = lastDividerLocation;
             // Ensure within bounds
-            if (expandLocation < MIN_EXPANDED_SIZE) {
-                expandLocation = MIN_EXPANDED_SIZE;
-            } else if (expandLocation > MAX_EXPANDED_SIZE) {
-                expandLocation = MAX_EXPANDED_SIZE;
+            if (expandLocation < UIConstants.MIN_EXPANDED_SIZE) {
+                expandLocation = UIConstants.MIN_EXPANDED_SIZE;
+            } else if (expandLocation > UIConstants.MAX_EXPANDED_SIZE) {
+                expandLocation = UIConstants.MAX_EXPANDED_SIZE;
             }
             splitPane.setDividerLocation(expandLocation);
             functionPanel.setVisible(true);
@@ -125,11 +122,12 @@ public class GraphingCalculator extends JFrame {
         } else {
             // Save current location if it's valid
             int currentLocation = splitPane.getDividerLocation();
-            if (currentLocation >= MIN_EXPANDED_SIZE && currentLocation <= MAX_EXPANDED_SIZE) {
+            if (currentLocation >= UIConstants.MIN_EXPANDED_SIZE && 
+                currentLocation <= UIConstants.MAX_EXPANDED_SIZE) {
                 lastDividerLocation = currentLocation;
             }
             // Collapse to very small size
-            splitPane.setDividerLocation(COLLAPSED_SIZE);
+            splitPane.setDividerLocation(UIConstants.COLLAPSED_SIZE);
             functionPanel.setVisible(false);
             isCollapsed = true;
         }

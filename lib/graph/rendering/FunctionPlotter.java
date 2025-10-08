@@ -1,7 +1,10 @@
 package lib.graph.rendering;
 
+import lib.constants.GraphConstants;
+import lib.constants.RenderingConstants;
 import lib.expression.ExpressionEvaluator;
 import lib.graph.GraphBounds;
+import lib.util.ValidationUtils;
 import java.awt.*;
 import java.awt.geom.Path2D;
 
@@ -9,11 +12,6 @@ import java.awt.geom.Path2D;
  * Handles plotting individual mathematical functions
  */
 public class FunctionPlotter {
-    
-    private static final int DEFAULT_STROKE_WIDTH = 2;
-    private static final double DEFAULT_VIEW_RANGE = 20.0;
-    private static final int MIN_SAMPLES = 50;
-    private static final int MAX_SAMPLES = 5000;
     
     private final ExpressionEvaluator evaluator;
     private final GraphBounds bounds;
@@ -39,7 +37,7 @@ public class FunctionPlotter {
     public void plotFunction(Graphics2D g2, String expression, Color color, 
                             int width, int height) {
         g2.setColor(color);
-        g2.setStroke(new BasicStroke(DEFAULT_STROKE_WIDTH));
+        g2.setStroke(RenderingConstants.FUNCTION_STROKE);
         
         Path2D path = new Path2D.Double();
         int sampleCount = calculateAdaptiveSamples(width);
@@ -53,7 +51,7 @@ public class FunctionPlotter {
             try {
                 double y = evaluator.evaluate(expression, x);
                 
-                if (isValidValue(y)) {
+                if (ValidationUtils.isValidValue(y)) {
                     int screenY = bounds.yToScreen(y, height);
                     
                     if (firstPoint) {
@@ -79,17 +77,12 @@ public class FunctionPlotter {
     private int calculateAdaptiveSamples(int pixelWidth) {
         double viewRangeX = bounds.getRangeX();
         double baseSamples = pixelWidth;
-        double zoomMultiplier = Math.max(1.0, DEFAULT_VIEW_RANGE / viewRangeX);
-        zoomMultiplier = Math.min(10.0, zoomMultiplier);
+        double zoomMultiplier = Math.max(GraphConstants.MIN_ZOOM_MULTIPLIER, 
+                                         GraphConstants.DEFAULT_VIEW_RANGE / viewRangeX);
+        zoomMultiplier = Math.min(GraphConstants.MAX_ZOOM_MULTIPLIER, zoomMultiplier);
         
         int sampleCount = (int) Math.round(baseSamples * zoomMultiplier);
-        return Math.max(MIN_SAMPLES, Math.min(MAX_SAMPLES, sampleCount));
-    }
-    
-    /**
-     * Check if a value is valid (not NaN or infinite)
-     */
-    private boolean isValidValue(double value) {
-        return !Double.isNaN(value) && !Double.isInfinite(value);
+        return Math.max(RenderingConstants.MIN_SAMPLES, 
+                       Math.min(RenderingConstants.MAX_SAMPLES, sampleCount));
     }
 }

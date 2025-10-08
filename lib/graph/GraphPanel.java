@@ -1,8 +1,8 @@
 package lib.graph;
-import javax.swing.*;
 
+import lib.constants.GraphConstants;
 import lib.expression.ExpressionEvaluator;
-
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
@@ -25,11 +25,6 @@ public class GraphPanel extends JPanel {
     // cache of named intersection points for user-defined intersection functions
     private java.util.Map<String, java.util.List<Point2D.Double>> namedIntersectionPoints = new java.util.HashMap<>();
     
-    // Graph defaults - increased range to show more of the graph initially
-    private static final double DEFAULT_VIEW_RANGE_X = 40.0;
-    private static final double DEFAULT_VIEW_RANGE_Y = 40.0;
-    private static final double INITIAL_ZOOM = 1.0;
-    
     // Track previous dimensions for resize handling
     private int previousWidth = 0;
     private int previousHeight = 0;
@@ -41,8 +36,8 @@ public class GraphPanel extends JPanel {
         setBackground(Color.WHITE);
         
         // Initialize bounds
-        double halfWidth = (DEFAULT_VIEW_RANGE_X / INITIAL_ZOOM) / 2.0;
-        double halfHeight = (DEFAULT_VIEW_RANGE_Y / INITIAL_ZOOM) / 2.0;
+        double halfWidth = (GraphConstants.DEFAULT_VIEW_RANGE_X / GraphConstants.INITIAL_ZOOM) / 2.0;
+        double halfHeight = (GraphConstants.DEFAULT_VIEW_RANGE_Y / GraphConstants.INITIAL_ZOOM) / 2.0;
         bounds = GraphBounds.centered(halfWidth, halfHeight);
         
         // Initialize components

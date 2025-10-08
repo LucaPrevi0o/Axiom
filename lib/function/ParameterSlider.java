@@ -1,5 +1,6 @@
 package lib.function;
 
+import lib.constants.UIConstants;
 import javax.swing.*;
 import java.awt.*;
 import java.text.DecimalFormat;
@@ -15,8 +16,6 @@ public class ParameterSlider extends JPanel {
     private final JButton deleteButton;
     private final ParameterChangeListener listener;
     private final DecimalFormat decimalFormat;
-    
-    private static final int SLIDER_STEPS = 1000; // Resolution for the slider
     
     /**
      * Listener interface for parameter value changes
@@ -37,7 +36,7 @@ public class ParameterSlider extends JPanel {
         this.decimalFormat = new DecimalFormat("0.##");
         
         // Create slider
-        this.slider = new JSlider(0, SLIDER_STEPS);
+        this.slider = new JSlider(0, UIConstants.SLIDER_STEPS);
         updateSliderFromParameter();
         
         // Create value label
@@ -122,7 +121,7 @@ public class ParameterSlider extends JPanel {
     private void updateSliderFromParameter() {
         double range = parameter.getRange();
         double normalized = (parameter.getCurrentValue() - parameter.getMinValue()) / range;
-        int sliderValue = (int) Math.round(normalized * SLIDER_STEPS);
+        int sliderValue = (int) Math.round(normalized * UIConstants.SLIDER_STEPS);
         slider.setValue(sliderValue);
     }
     
@@ -130,7 +129,7 @@ public class ParameterSlider extends JPanel {
      * Update parameter value from slider position
      */
     private void updateParameterFromSlider() {
-        double normalized = (double) slider.getValue() / (double) SLIDER_STEPS;
+        double normalized = (double) slider.getValue() / (double) UIConstants.SLIDER_STEPS;
         double value = parameter.getMinValue() + normalized * parameter.getRange();
         parameter.setCurrentValue(value);
     }

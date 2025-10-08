@@ -1,14 +1,13 @@
 package lib.graph;
 
+import lib.constants.GraphConstants;
+import lib.util.ValidationUtils;
 import java.awt.Point;
 
 /**
  * Manages viewport operations including zoom, pan, and resize preservation.
  */
 public class ViewportManager {
-    
-    private static final double ZOOM_IN_FACTOR = 0.95;
-    private static final double ZOOM_OUT_FACTOR = 1.05;
     
     private final GraphBounds bounds;
     private Point lastMousePoint;
@@ -32,7 +31,7 @@ public class ViewportManager {
      */
     public void zoom(boolean zoomIn, int mouseScreenX, int mouseScreenY, 
                     int screenWidth, int screenHeight) {
-        double zoomFactor = zoomIn ? ZOOM_IN_FACTOR : ZOOM_OUT_FACTOR;
+        double zoomFactor = zoomIn ? GraphConstants.ZOOM_IN_FACTOR : GraphConstants.ZOOM_OUT_FACTOR;
         
         // Graph coordinate under mouse before zoom
         double mouseGraphX = bounds.screenToX(mouseScreenX, screenWidth);
@@ -102,7 +101,8 @@ public class ViewportManager {
      * @param oldHeight Old screen height
      */
     public void preserveZoomOnResize(int newWidth, int newHeight, int oldWidth, int oldHeight) {
-        if (newWidth <= 0 || newHeight <= 0 || oldWidth <= 0 || oldHeight <= 0) {
+        if (!ValidationUtils.areValidDimensions(newWidth, newHeight) || 
+            !ValidationUtils.areValidDimensions(oldWidth, oldHeight)) {
             return;
         }
         

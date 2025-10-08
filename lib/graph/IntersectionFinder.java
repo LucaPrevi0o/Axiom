@@ -1,6 +1,9 @@
 package lib.graph;
 
+import lib.constants.MathConstants;
+import lib.constants.RenderingConstants;
 import lib.expression.ExpressionEvaluator;
+import lib.util.ValidationUtils;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,13 +13,6 @@ import java.util.List;
  * using numerical methods.
  */
 public class IntersectionFinder {
-    
-    // Intersection computation constants
-    private static final int MIN_INTERSECTION_SAMPLES = 200;
-    private static final int MAX_INTERSECTION_SAMPLES = 1000;
-    private static final int BISECTION_MAX_ITERATIONS = 40;
-    private static final double BISECTION_EPSILON = 1e-8;
-    private static final double DEDUPLICATION_THRESHOLD = 1e-6;
     
     private final ExpressionEvaluator evaluator;
     
@@ -53,11 +49,11 @@ public class IntersectionFinder {
                 double vRight = evaluator.evaluate(rightExpr, x);
                 double v = vLeft - vRight;
                 
-                if (isValidValue(prevVal) && isValidValue(v)) {
+                if (ValidationUtils.isValidValue(prevVal) && ValidationUtils.isValidValue(v)) {
                     if (hasSignChange(prevVal, v)) {
                         double root = findRootByBisection(leftExpr, rightExpr, prevX, x, prevVal);
                         
-                        if (isValidValue(root)) {
+                        if (ValidationUtils.isValidValue(root)) {
                             try {
                                 double y = evaluator.evaluate(leftExpr, root);
                                 Point2D.Double p = new Point2D.Double(root, y);
@@ -98,13 +94,13 @@ public class IntersectionFinder {
         double root = Double.NaN;
         try {
             // Perform bisection iterations
-            for (int it = 0; it < BISECTION_MAX_ITERATIONS; it++) {
+            for (int it = 0; it < MathConstants.BISECTION_MAX_ITERATIONS; it++) {
                 double m = (a + b) / 2.0;
                 double fm = evaluator.evaluate(leftExpr, m) - evaluator.evaluate(rightExpr, m);
                 
-                if (!isValidValue(fm)) break;
+                if (!ValidationUtils.isValidValue(fm)) break;
                 
-                if (Math.abs(fm) < BISECTION_EPSILON) { 
+                if (Math.abs(fm) < MathConstants.BISECTION_EPSILON) { 
                     root = m; 
                     break; 
                 }
@@ -133,17 +129,8 @@ public class IntersectionFinder {
      * @return Number of samples to use
      */
     private int calculateSampleCount(int screenWidth) {
-        return Math.min(MAX_INTERSECTION_SAMPLES, 
-                       Math.max(MIN_INTERSECTION_SAMPLES, screenWidth));
-    }
-    
-    /**
-     * Check if a value is valid (not NaN or infinite)
-     * @param value Value to check
-     * @return true if valid
-     */
-    private boolean isValidValue(double value) {
-        return !Double.isNaN(value) && !Double.isInfinite(value);
+        return Math.min(RenderingConstants.MAX_INTERSECTION_SAMPLES, 
+                       Math.max(RenderingConstants.MIN_INTERSECTION_SAMPLES, screenWidth));
     }
     
     /**
@@ -165,7 +152,7 @@ public class IntersectionFinder {
      */
     private boolean isDuplicate(Point2D.Double point, List<Point2D.Double> existingPoints) {
         for (Point2D.Double existing : existingPoints) {
-            if (Math.abs(existing.x - point.x) < DEDUPLICATION_THRESHOLD) {
+            if (Math.abs(existing.x - point.x) < MathConstants.DEDUPLICATION_THRESHOLD) {
                 return true;
             }
         }

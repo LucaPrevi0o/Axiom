@@ -1,24 +1,13 @@
 package lib.function;
 
+import lib.constants.UIConstants;
 import java.awt.Color;
-import java.util.Arrays;
 import java.util.List;
 
 /**
  * Manages color assignment for functions
  */
 public class FunctionColorManager {
-    
-    private static final List<Color> DEFAULT_COLORS = Arrays.asList(
-        Color.BLUE, 
-        Color.RED, 
-        Color.GREEN, 
-        Color.ORANGE,
-        Color.MAGENTA, 
-        Color.CYAN, 
-        new Color(139, 69, 19),  // Brown
-        new Color(128, 0, 128)    // Purple
-    );
     
     private final List<Color> colors;
     private int nextColorIndex;
@@ -27,7 +16,7 @@ public class FunctionColorManager {
      * Create a color manager with default colors
      */
     public FunctionColorManager() {
-        this(DEFAULT_COLORS);
+        this(UIConstants.DEFAULT_FUNCTION_COLORS);
     }
     
     /**
