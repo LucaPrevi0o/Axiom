@@ -27,6 +27,7 @@ public class FunctionEntry extends JPanel {
     // State
     private Color functionColor;
     private FunctionPanel parent;
+    private boolean showVisualControls;
     
     // View modes
     private static final String VIEW_MODE = "view";
@@ -37,13 +38,25 @@ public class FunctionEntry extends JPanel {
      * @param expression Initial expression
      * @param color Function color
      * @param parent Parent panel
+     * @param showVisualControls Whether to show color indicator and checkbox (true for plotted elements, false for sets)
      */
-    public FunctionEntry(String expression, Color color, FunctionPanel parent) {
+    public FunctionEntry(String expression, Color color, FunctionPanel parent, boolean showVisualControls) {
         this.functionColor = color;
         this.parent = parent;
+        this.showVisualControls = showVisualControls;
         
         initComponents(expression);
         layoutComponents();
+    }
+    
+    /**
+     * Constructor with default visual controls (shown)
+     * @param expression Initial expression
+     * @param color Function color
+     * @param parent Parent panel
+     */
+    public FunctionEntry(String expression, Color color, FunctionPanel parent) {
+        this(expression, color, parent, true);
     }
     
     /**
@@ -131,8 +144,13 @@ public class FunctionEntry extends JPanel {
         
         // Top panel
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        topPanel.add(colorIndicator);
-        topPanel.add(enableCheckbox);
+        
+        // Only add color indicator and checkbox if visual controls are enabled
+        if (showVisualControls) {
+            topPanel.add(colorIndicator);
+            topPanel.add(enableCheckbox);
+        }
+        
         topPanel.add(editButton);
         topPanel.add(deleteButton);
         add(topPanel, BorderLayout.NORTH);

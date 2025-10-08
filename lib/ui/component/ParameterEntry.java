@@ -17,7 +17,6 @@ public class ParameterEntry extends JPanel {
     private final JLabel valueLabel;
     private final JLabel definitionLabel;
     private final JButton deleteButton;
-    private final JPanel colorIndicator;
     private final ParameterChangeListener listener;
     private final ExpressionFormatter formatter;
     
@@ -32,16 +31,12 @@ public class ParameterEntry extends JPanel {
     /**
      * Create a parameter entry
      * @param parameter The parameter to control
-     * @param color The color for the parameter
      * @param listener Listener for value changes
      */
-    public ParameterEntry(Parameter parameter, Color color, ParameterChangeListener listener) {
+    public ParameterEntry(Parameter parameter, ParameterChangeListener listener) {
         this.parameter = parameter;
         this.listener = listener;
         this.formatter = new ExpressionFormatter();
-        
-        // Create color indicator
-        this.colorIndicator = createColorIndicator(color);
         
         // Create definition label
         this.definitionLabel = new JLabel();
@@ -83,17 +78,6 @@ public class ParameterEntry extends JPanel {
     }
     
     /**
-     * Create color indicator panel
-     */
-    private JPanel createColorIndicator(Color color) {
-        JPanel indicator = new JPanel();
-        indicator.setBackground(color);
-        indicator.setPreferredSize(new Dimension(20, 20));
-        indicator.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-        return indicator;
-    }
-    
-    /**
      * Initialize component listeners
      */
     private void initComponents() {
@@ -132,12 +116,11 @@ public class ParameterEntry extends JPanel {
     private void layoutComponents() {
         setLayout(new BorderLayout(5, 5));
         
-        // Top panel: color indicator, definition label, value, and delete button
+        // Top panel: definition label, value, and delete button
         JPanel topPanel = new JPanel(new BorderLayout(5, 0));
         
-        // Left side: color + definition
+        // Left side: definition
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        leftPanel.add(colorIndicator);
         leftPanel.add(definitionLabel);
         topPanel.add(leftPanel, BorderLayout.WEST);
         

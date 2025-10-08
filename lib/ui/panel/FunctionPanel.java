@@ -106,8 +106,11 @@ public class FunctionPanel extends JPanel {
             }
         }
         
+        // Check if this is a set - sets should not show visual controls
+        boolean isSet = FunctionParser.isSet(expression.trim());
+        
         // Otherwise, create a regular function entry
-        FunctionEntry entry = new FunctionEntry(expression, color, this);
+        FunctionEntry entry = new FunctionEntry(expression, color, this, !isSet);
         functionEntries.add(entry);
         entriesPanel.add(entry);
         entriesPanel.add(Box.createVerticalStrut(5));
@@ -128,7 +131,7 @@ public class FunctionPanel extends JPanel {
         if (!exists) {
             parameters.add(param);
             
-            ParameterEntry entry = new ParameterEntry(param, color, new ParameterEntry.ParameterChangeListener() {
+            ParameterEntry entry = new ParameterEntry(param, new ParameterEntry.ParameterChangeListener() {
                 @Override
                 public void onParameterChanged(Parameter parameter) {
                     updateGraph();
