@@ -23,7 +23,6 @@ public class FunctionPanel extends JPanel {
     private final FunctionColorManager colorManager;
     private final JPanel entriesPanel;
     private final JButton addButton;
-    private final FunctionFactory functionFactory;
     
     private java.util.Map<String, String> namedFunctions = new java.util.HashMap<>();
     
@@ -38,10 +37,6 @@ public class FunctionPanel extends JPanel {
         this.colorManager = new FunctionColorManager();
         this.entriesPanel = new JPanel();
         this.addButton = new JButton("+ Add Function");
-        this.functionFactory = new FunctionFactory(
-            graphPanel.getEvaluator(), 
-            graphPanel.getIntersectionFinder()
-        );
         
         initComponents();
         layoutComponents();
@@ -210,8 +205,14 @@ public class FunctionPanel extends JPanel {
      * Update graph with all current functions
      */
     public void updateGraph() {
+        // Create factory with current evaluator (which has latest parameters)
+        FunctionFactory factory = new FunctionFactory(
+            graphPanel.getEvaluator(), 
+            graphPanel.getIntersectionFinder()
+        );
+        
         // Parse function entries using factory
-        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, functionFactory);
+        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, factory);
         
         namedFunctions = result.getNamedFunctions();
         graphPanel.setUserFunctions(namedFunctions);

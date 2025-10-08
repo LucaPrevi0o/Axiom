@@ -72,6 +72,26 @@ public class RegionFunction extends Function {
     }
     
     /**
+     * Evaluate the left expression at a given x
+     * @param x X coordinate
+     * @return Evaluated y value
+     * @throws Exception if evaluation fails
+     */
+    public double evaluateLeft(double x) throws Exception {
+        return evaluator.evaluate(leftExpression, x);
+    }
+    
+    /**
+     * Evaluate the right expression at a given x
+     * @param x X coordinate
+     * @return Evaluated y value
+     * @throws Exception if evaluation fails
+     */
+    public double evaluateRight(double x) throws Exception {
+        return evaluator.evaluate(rightExpression, x);
+    }
+    
+    /**
      * Evaluate if a point satisfies the inequality
      * @param x X coordinate
      * @return true if point is in the region

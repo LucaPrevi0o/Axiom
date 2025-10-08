@@ -4,6 +4,7 @@ import lib.constants.RenderingConstants;
 import lib.core.ExpressionEvaluator;
 import lib.model.*;
 import lib.rendering.pipeline.*;
+import lib.util.ValidationUtils;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.List;
@@ -116,37 +117,109 @@ public class GraphRenderer {
      */
     private void renderRegion(Graphics2D g2, RegionFunction function,
                              List<Point2D.Double> points, int width, int height) {
-        // Draw the boundary curve
+        // Draw the boundary curves
+        g2.setColor(function.getColor());
         g2.setStroke(RenderingConstants.BORDER_STROKE);
-        renderContinuousCurve(g2, points, width, height);
         
-        // Fill the region where the inequality is satisfied
-        Color fillColor = new Color(
-            function.getColor().getRed(),
-            function.getColor().getGreen(),
-            function.getColor().getBlue(),
-            RenderingConstants.FILL_ALPHA
-        );
-        g2.setColor(fillColor);
-        
-        // Sample and fill the region
+        // Sample both curves
         int sampleCount = RenderingConstants.REGION_SAMPLE_COUNT;
         double xMin = bounds.getMinX();
         double xMax = bounds.getMaxX();
-        double yMin = bounds.getMinY();
-        double yMax = bounds.getMaxY();
         double xStep = (xMax - xMin) / sampleCount;
         
-        for (int i = 0; i < sampleCount; i++) {
-            double x = xMin + i * xStep;
-            
-            if (function.satisfiesInequality(x)) {
-                // Draw a vertical line representing this x-slice
-                int screenX = bounds.xToScreen(x, width);
-                int topY = bounds.yToScreen(yMax, height);
-                int bottomY = bounds.yToScreen(yMin, height);
-                g2.drawLine(screenX, topY, screenX, bottomY);
+        // Draw both boundary curves
+        java.awt.geom.Path2D leftPath = new java.awt.geom.Path2D.Double();
+        java.awt.geom.Path2D rightPath = new java.awt.geom.Path2D.Double();
+        boolean leftStarted = false;
+        boolean rightStarted = false;
+        
+        try {
+            for (int i = 0; i <= sampleCount; i++) {
+                double x = xMin + i * xStep;
+                
+                try {
+                    double leftY = function.evaluateLeft(x);
+                    double rightY = function.evaluateRight(x);
+                    
+                    if (ValidationUtils.areAllValid(leftY, rightY)) {
+                        int sx = bounds.xToScreen(x, width);
+                        int leftSy = bounds.yToScreen(leftY, height);
+                        int rightSy = bounds.yToScreen(rightY, height);
+                        
+                        if (!leftStarted) {
+                            leftPath.moveTo(sx, leftSy);
+                            leftStarted = true;
+                        } else {
+                            leftPath.lineTo(sx, leftSy);
+                        }
+                        
+                        if (!rightStarted) {
+                            rightPath.moveTo(sx, rightSy);
+                            rightStarted = true;
+                        } else {
+                            rightPath.lineTo(sx, rightSy);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip this point
+                }
             }
+            
+            // Draw the boundary curves
+            g2.draw(leftPath);
+            g2.draw(rightPath);
+            
+            // Fill the region between the curves
+            Color fillColor = new Color(
+                function.getColor().getRed(),
+                function.getColor().getGreen(),
+                function.getColor().getBlue(),
+                RenderingConstants.FILL_ALPHA
+            );
+            g2.setColor(fillColor);
+            
+            // Create filled polygon between curves
+            for (int i = 0; i < sampleCount; i++) {
+                double x1 = xMin + i * xStep;
+                double x2 = xMin + (i + 1) * xStep;
+                
+                try {
+                    double leftY1 = function.evaluateLeft(x1);
+                    double rightY1 = function.evaluateRight(x1);
+                    double leftY2 = function.evaluateLeft(x2);
+                    double rightY2 = function.evaluateRight(x2);
+                    
+                    if (ValidationUtils.areAllValid(leftY1, rightY1, leftY2, rightY2)) {
+                        // Check if this region satisfies the inequality
+                        boolean satisfies1 = function.satisfiesInequality(x1);
+                        boolean satisfies2 = function.satisfiesInequality(x2);
+                        
+                        if (satisfies1 || satisfies2) {
+                            // Create a quad between the two curves
+                            int[] xPoints = new int[4];
+                            int[] yPoints = new int[4];
+                            
+                            xPoints[0] = bounds.xToScreen(x1, width);
+                            yPoints[0] = bounds.yToScreen(leftY1, height);
+                            
+                            xPoints[1] = bounds.xToScreen(x2, width);
+                            yPoints[1] = bounds.yToScreen(leftY2, height);
+                            
+                            xPoints[2] = bounds.xToScreen(x2, width);
+                            yPoints[2] = bounds.yToScreen(rightY2, height);
+                            
+                            xPoints[3] = bounds.xToScreen(x1, width);
+                            yPoints[3] = bounds.yToScreen(rightY1, height);
+                            
+                            g2.fillPolygon(xPoints, yPoints, 4);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Skip this segment
+                }
+            }
+        } catch (Exception e) {
+            // Error rendering region
         }
     }
 }
