@@ -28,6 +28,11 @@ public class FunctionParser {
     private static final Pattern PARAMETER_PATTERN = 
         Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\[\\s*(-?\\d+\\.?\\d*)\\s*:\\s*(-?\\d+\\.?\\d*)\\s*\\]\\s*$");
     
+    // Pattern for point functions: P=(x,y) where x and y can be complex expressions
+    // We use a simpler pattern and parse the coordinates manually to handle nested parentheses
+    private static final Pattern POINT_PATTERN = 
+        Pattern.compile("^\\s*([A-Za-z_]\\w*)\\s*=\\s*\\((.+)\\)\\s*$");
+    
     /**
      * Result of parsing function entries
      */
@@ -77,6 +82,8 @@ public class FunctionParser {
                 if (param != null) {
                     parameters.add(param);
                 }
+            } else if (isPoint(expr)) {
+                parsePoint(expr, color, functions, factory);
             } else if (isNamedFunction(expr)) {
                 parseNamedFunction(expr, color, namedFunctions, functions, factory);
             } else {
@@ -125,6 +132,15 @@ public class FunctionParser {
     }
     
     /**
+     * Check if an expression is a point definition (e.g., P=(1,2))
+     * @param expr Expression to check
+     * @return true if point
+     */
+    public static boolean isPoint(String expr) {
+        return POINT_PATTERN.matcher(expr).matches();
+    }
+    
+    /**
      * Parse a named function definition
      */
     private static void parseNamedFunction(String expr, Color color, 
@@ -143,6 +159,52 @@ public class FunctionParser {
         // Create the function using factory with the name
         Function function = factory.createFunction(name, rhs, color);
         functions.add(function);
+    }
+    
+    /**
+     * Parse a point definition (e.g., P=(1,2) or P=(a,0) or P=(3,f(3)))
+     */
+    private static void parsePoint(String expr, Color color,
+                                   List<Function> functions,
+                                   FunctionFactory factory) {
+        java.util.regex.Matcher matcher = POINT_PATTERN.matcher(expr);
+        if (matcher.matches()) {
+            String name = matcher.group(1);
+            String coords = matcher.group(2); // Everything inside the outer parentheses
+            
+            // Manually split coordinates by comma, handling nested parentheses
+            int commaPos = findTopLevelComma(coords);
+            if (commaPos == -1) {
+                return;
+            }
+            
+            String xStr = coords.substring(0, commaPos).trim();
+            String yStr = coords.substring(commaPos + 1).trim();
+            
+            // Create a parametric point function using factory
+            // This handles literal numbers, parameters, and function calls
+            Function function = factory.createParametricPointFunction(name, xStr, yStr, color);
+            functions.add(function);
+        }
+    }
+    
+    /**
+     * Find the position of the top-level comma (not inside parentheses)
+     * Returns -1 if no top-level comma is found
+     */
+    private static int findTopLevelComma(String str) {
+        int depth = 0;
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            if (c == '(') {
+                depth++;
+            } else if (c == ')') {
+                depth--;
+            } else if (c == ',' && depth == 0) {
+                return i;
+            }
+        }
+        return -1;
     }
     
     /**

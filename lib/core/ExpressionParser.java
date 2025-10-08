@@ -7,11 +7,17 @@ public class ExpressionParser {
     private int ch;
     private String str;
     private Map<String, String> userFunctions;
+    private Map<String, Double> parameters;
 
-    public ExpressionParser() { this(null); }
+    public ExpressionParser() { this(null, null); }
 
     public ExpressionParser(Map<String, String> userFunctions) {
+        this(userFunctions, null);
+    }
+    
+    public ExpressionParser(Map<String, String> userFunctions, Map<String, Double> parameters) {
         this.userFunctions = userFunctions;
+        this.parameters = parameters;
     }
     
     /**
@@ -110,8 +116,8 @@ public class ExpressionParser {
                 // If this is a user-defined function, evaluate its expression with the provided argument
                 if (userFunctions != null && userFunctions.containsKey(func)) {
                     String funcExpr = userFunctions.get(func);
-                    // Evaluate the function expression using the same userFunctions map
-                    x = new ExpressionEvaluator(userFunctions).evaluate(funcExpr, x);
+                    // Evaluate the function expression using the same userFunctions map and parameters
+                    x = new ExpressionEvaluator(userFunctions, parameters).evaluate(funcExpr, x);
                 } else {
                     x = applyFunction(func, x);
                 }

@@ -109,6 +109,32 @@ public class FunctionFactory {
     }
     
     /**
+     * Create a point function from coordinates
+     * @param name Point name (e.g., "P", "A")
+     * @param x X coordinate
+     * @param y Y coordinate
+     * @param color Display color
+     * @return PointSetFunction with a single point
+     */
+    public Function createPointFunction(String name, double x, double y, Color color) {
+        double[] xValues = {x};
+        double[] yValues = {y};
+        return new PointSetFunction(name, xValues, yValues, color);
+    }
+    
+    /**
+     * Create a parametric point function from coordinate expressions
+     * @param name Point name (e.g., "P", "A")
+     * @param xExpr X coordinate expression (can be a number or parameter name)
+     * @param yExpr Y coordinate expression (can be a number or parameter name)
+     * @param color Display color
+     * @return ParametricPointFunction that evaluates coordinates dynamically
+     */
+    public Function createParametricPointFunction(String name, String xExpr, String yExpr, Color color) {
+        return new ParametricPointFunction(name, xExpr, yExpr, color, evaluator);
+    }
+    
+    /**
      * Check if expression is an intersection pattern: (expr=expr)
      */
     private boolean isIntersection(String expr) {

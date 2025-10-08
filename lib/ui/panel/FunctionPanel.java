@@ -205,24 +205,40 @@ public class FunctionPanel extends JPanel {
      * Update graph with all current functions
      */
     public void updateGraph() {
-        // Create factory with current evaluator (which has latest parameters)
-        FunctionFactory factory = new FunctionFactory(
-            graphPanel.getEvaluator(), 
-            graphPanel.getIntersectionFinder()
-        );
-        
-        // Parse function entries using factory
-        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, factory);
-        
-        namedFunctions = result.getNamedFunctions();
-        graphPanel.setUserFunctions(namedFunctions);
+        // IMPORTANT: Update parameters FIRST before creating the factory
+        // This ensures the ExpressionEvaluator has the latest parameter values
+        // when creating ParametricPointFunction instances
         
         // Build parameter values map
         java.util.Map<String, Double> paramValues = new java.util.HashMap<>();
         for (Parameter param : parameters) {
             paramValues.put(param.getName().toLowerCase(), param.getCurrentValue());
         }
+        
+        // Parse named functions first to update userFunctions
+        namedFunctions = new java.util.HashMap<>();
+        for (FunctionEntry entry : functionEntries) {
+            if (entry.isEnabled() && FunctionParser.isNamedFunction(entry.getExpression())) {
+                String name = FunctionParser.extractName(entry.getExpression());
+                String rhs = FunctionParser.extractRHS(entry.getExpression());
+                if (name != null && rhs != null) {
+                    namedFunctions.put(name.toLowerCase(), rhs);
+                }
+            }
+        }
+        
+        // Update GraphPanel's user functions and parameters
+        graphPanel.setUserFunctions(namedFunctions);
         graphPanel.setParameters(paramValues);
+        
+        // NOW create factory with the updated evaluator
+        FunctionFactory factory = new FunctionFactory(
+            graphPanel.getEvaluator(), 
+            graphPanel.getIntersectionFinder()
+        );
+        
+        // Parse function entries using factory (now has correct parameters)
+        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, factory);
         
         graphPanel.setFunctions(result.getFunctions());
         graphPanel.repaint();

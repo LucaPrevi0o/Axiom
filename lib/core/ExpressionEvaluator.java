@@ -48,6 +48,55 @@ public class ExpressionEvaluator {
         // Evaluate the expression
         return evaluateExpression(expression);
     }
+    
+    /**
+     * Evaluate a constant expression (doesn't depend on x)
+     * This is useful for evaluating expressions like "f(4)" or "a+b" where
+    /**
+     * Evaluate an expression that doesn't depend on x (constant evaluation).
+     * This is used for point coordinates like P=(3,f(3)) where we need to evaluate
+     * f(3) with a specific numeric argument. It handles:
+     * - Literal numbers: "3" → 3.0
+     * - Parameters: "a" → value of parameter a
+     * - Function calls: "f(4)" → evaluate f at x=4
+     * - Expressions: "a+f(4)" → evaluate with parameters and function calls
+     * 
+     * Key difference from evaluate(expression, x):
+     * This method replaces parameters and evaluates function calls independently.
+     * For example, in P=(a,f(a)), if a=3:
+     * - a gets replaced with 3
+     * - f(a) becomes f(3) and gets evaluated at x=3
+     * 
+     * In contrast, evaluate(expression, x) substitutes a single x value everywhere.
+     * For example, f(x)+g(x) at x=5 evaluates both f and g at 5.
+     * 
+     * Example scenarios:
+     * - P=(1,2): literal coordinates
+     * - P=(a,0): a is a parameter, a and b are parameters, but x is not involved.
+     * @param expression The expression to evaluate
+     * @return The evaluated result
+     * @throws Exception If the expression is invalid
+     */
+    public double evaluateConstant(String expression) throws Exception {
+        expression = expression.toLowerCase().trim();
+        
+        // Replace parameter names with their values
+        if (parameters != null) {
+            for (Map.Entry<String, Double> entry : parameters.entrySet()) {
+                String paramName = entry.getKey().toLowerCase();
+                String paramValue = String.valueOf(entry.getValue());
+                // Replace whole-word occurrences of parameter name
+                expression = expression.replaceAll("(?i)\\b" + paramName + "\\b", "(" + paramValue + ")");
+            }
+        }
+        
+        // Don't replace x - let the parser handle it naturally
+        // Don't call handleFunctions() - it's empty and ExpressionParser already handles user functions
+        // This allows expressions like f(4) to work correctly
+        
+        // Evaluate the expression - parser will handle user functions
+        return evaluateExpression(expression);
+    }
 
     /**
      * Handle basic math functions in the expression
@@ -67,8 +116,7 @@ public class ExpressionEvaluator {
      * @throws Exception If the expression is invalid
      */
     private double evaluateExpression(String expr) throws Exception {
-        // Simple expression evaluator (you'll need to expand this)
-        // For now, using a basic approach
-        return new ExpressionParser(userFunctions).parse(expr);
+        // Pass both userFunctions and parameters to the parser
+        return new ExpressionParser(userFunctions, parameters).parse(expr);
     }
 }

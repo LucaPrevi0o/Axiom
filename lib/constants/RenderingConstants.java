@@ -36,8 +36,8 @@ public final class RenderingConstants {
     public static final int FILL_ALPHA = 80; // Transparency for region fills (0-255)
     public static final int REGION_SAMPLE_COUNT = 500;
     
-    // Intersection rendering
-    public static final int INTERSECTION_POINT_RADIUS = 4;
+    // Intersection and point rendering
+    public static final int INTERSECTION_POINT_RADIUS = 8; // Radius for intersection points and parametric points
     
     // Function plotting samples
     public static final int MIN_SAMPLES = 50;

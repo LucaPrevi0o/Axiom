@@ -34,6 +34,24 @@ public class PointSetFunction extends Function {
     }
     
     /**
+     * Create a named point set function from coordinate arrays
+     * @param name Function name
+     * @param xValues Array of x coordinates
+     * @param yValues Array of y coordinates
+     * @param color Display color
+     */
+    public PointSetFunction(String name, double[] xValues, double[] yValues, Color color) {
+        super(name, color);
+        if (xValues.length != yValues.length) {
+            throw new IllegalArgumentException("xValues and yValues must have the same length");
+        }
+        this.points = new ArrayList<>();
+        for (int i = 0; i < xValues.length; i++) {
+            this.points.add(new Point2D.Double(xValues[i], yValues[i]));
+        }
+    }
+    
+    /**
      * Add a point to the set
      * @param point Point to add
      */

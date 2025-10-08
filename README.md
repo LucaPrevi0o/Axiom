@@ -7,6 +7,9 @@ A Java-based graphing calculator with support for mathematical functions, user-d
 - **Interactive Graphing**: Plot mathematical functions with real-time visualization
 - **User-Defined Functions**: Create named functions and use them in other expressions (e.g., `f(x)=x^2`)
 - **Intersection Detection**: Find and display intersection points between functions using `(expr1=expr2)` syntax
+- **Region Shading**: Visualize inequality regions with `(expr1>=expr2)` syntax
+- **Parameters**: Define adjustable parameters with sliders (e.g., `a=[0:10]`)
+- **Point Plotting**: Plot individual points with `P=(x,y)` syntax
 - **Zoom and Pan**: Mouse wheel to zoom, click and drag to pan
 - **Color-Coded Functions**: Each function has a customizable color
 - **LaTeX Rendering**: Beautiful mathematical notation (requires jlatexmath.jar)
@@ -44,6 +47,12 @@ A Java-based graphing calculator with support for mathematical functions, user-d
 3. **Using named function**: `2*f(x)` (requires f(x) to be defined first)
 4. **Intersection**: `(x^2=2*x+1)` - finds where x² intersects with 2x+1
 5. **Named intersection**: `g(x)=(x^2=sin(x))` - creates a named intersection function
+6. **Region (inequality)**: `(x^2>=2*x+1)` - shades the region where x² ≥ 2x+1
+7. **Parameter**: `a=[0:10]` - creates a slider for parameter 'a' from 0 to 10
+8. **Point (literal)**: `P=(1,2)` - creates a single point at coordinates (1, 2)
+9. **Point (parametric)**: `P=(a,0)` - creates a point at (a, 0) where 'a' is a parameter
+10. **Point (function evaluation)**: `P=(4,f(4))` - creates a point with y-coordinate equal to f(4)
+11. **Point (expression)**: `Q=(sin(a),cos(a))` - creates a point tracing a circle as 'a' varies
 
 ## Project Structure
 
