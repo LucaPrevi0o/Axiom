@@ -154,6 +154,43 @@ The application follows a **layered architecture** with clear separation of conc
 
 For detailed architecture documentation, see [PACKAGE_REORGANIZATION.md](PACKAGE_REORGANIZATION.md).
 
+### Inheritance-based Function Design
+
+The application uses a **polymorphic** architecture for function handling, replacing flag-based conditionals with clean inheritance:
+
+```
+Function (abstract base class)
+│
+├── ExpressionFunction      // Standard y = f(x) functions
+├── IntersectionFunction    // Intersection points (f = g)
+├── RegionFunction          // Inequality regions (f >= g)
+└── PointSetFunction        // Discrete data points
+```
+
+**Key Benefits:**
+- ✅ **No type-checking flags** - Uses polymorphism instead of `if (isIntersection)` conditionals
+- ✅ **Template Method Pattern** - Base class handles caching, subclasses compute points
+- ✅ **Factory Pattern** - `FunctionFactory` creates correct subclass from expression pattern
+- ✅ **Easy to extend** - Add new function types without modifying existing code
+- ✅ **Type-safe** - Each subclass guarantees its own properties exist
+
+**Example:**
+```java
+// Each Function subclass knows how to compute its own points
+List<Point2D.Double> points = function.getPoints(bounds, width, height);
+
+// Renderer uses polymorphism instead of conditionals:
+if (function.isRegion()) {
+    renderRegion(...);
+} else if (function.isContinuous()) {
+    renderContinuousCurve(...);
+} else {
+    renderDiscretePoints(...);
+}
+```
+
+For detailed design documentation, see [INHERITANCE_REFACTORING.md](INHERITANCE_REFACTORING.md).
+
 ## Core Components:
 
 1. **GraphPanel** (Coordinator)
@@ -179,8 +216,13 @@ For detailed architecture documentation, see [PACKAGE_REORGANIZATION.md](PACKAGE
 6. **FunctionParser** (Utility)
    - Parses function expressions
    - Detects named functions and intersections
+   - Uses FunctionFactory to create appropriate Function instances
 
-For detailed architecture information, see [ADVANCED_REFACTORING.md](ADVANCED_REFACTORING.md).
+## Documentation
+
+- **[PACKAGE_REORGANIZATION.md](PACKAGE_REORGANIZATION.md)** - Package structure and layered architecture
+- **[INHERITANCE_REFACTORING.md](INHERITANCE_REFACTORING.md)** - Polymorphic function design and patterns
+- **[PACKAGE_REORGANIZATION_CHANGELOG.md](PACKAGE_REORGANIZATION_CHANGELOG.md)** - Detailed file move history
 
 ## Dependencies
 

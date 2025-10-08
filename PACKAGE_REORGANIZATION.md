@@ -27,9 +27,49 @@ The project has been reorganized following **layered architecture** principles a
 | `GraphFunction` | Represents a mathematical function or region |
 | `GraphBounds` | Manages coordinate system bounds and transformations |
 | `Parameter` | Represents a parameter with min/max/current value |
+### 📦 `lib.model` - Domain Models
+**Purpose**: Data structures and domain logic
+
+| Class | Responsibility |
+|-------|---------------|
+| `Function` (abstract) | Base class for all plottable functions |
+| `ExpressionFunction` | Standard y=f(x) mathematical functions |
+| `IntersectionFunction` | Intersection points (f=g) |
+| `RegionFunction` | Inequality regions (f>=g, f<=g, etc.) |
+| `PointSetFunction` | Discrete point sets for future extensions |
+| `GraphBounds` | Manages coordinate system bounds and transformations |
+| `Parameter` | Represents a parameter with min/max/current value |
 | `ViewportManager` | Handles zoom and pan operations logic |
 
+**Design Pattern**: Uses **Template Method Pattern** - `Function.getPoints()` handles caching, subclasses implement `computePoints()`
+
 **Dependencies**: `lib.constants`, `lib.util`
+
+#### Function Inheritance Hierarchy
+```
+Function (abstract)
+│
+├── ExpressionFunction      // y = f(x)
+├── IntersectionFunction    // (f = g)
+├── RegionFunction          // (f >= g), (f <= g), etc.
+└── PointSetFunction        // Discrete points (scatter plots)
+```
+
+---
+
+### 📦 `lib.core` - Core Business Logic
+**Purpose**: Pure business logic with no UI dependencies
+
+| Class | Responsibility |
+|-------|---------------|
+| `ExpressionParser` | Parse mathematical expressions into evaluatable forms |
+| `ExpressionEvaluator` | Evaluate mathematical expressions with variables |
+| `FunctionParser` | Parse function definitions, intersections, and parameters |
+| `FunctionFactory` | Factory for creating appropriate Function instances |
+
+**Design Pattern**: Uses **Factory Pattern** - `FunctionFactory` analyzes expression pattern and creates correct Function subclass
+
+**Dependencies**: None (pure logic layer)
 
 ---
 

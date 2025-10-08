@@ -1,6 +1,6 @@
 package lib.core;
 
-import lib.model.GraphFunction;
+import lib.model.Function;
 import lib.model.Parameter;
 import lib.ui.component.FunctionEntry;
 import java.awt.Color;
@@ -33,12 +33,12 @@ public class FunctionParser {
      */
     public static class ParseResult {
         private final Map<String, String> namedFunctions;
-        private final List<GraphFunction> graphFunctions;
+        private final List<Function> functions;
         private final List<Parameter> parameters;
         
-        public ParseResult(Map<String, String> namedFunctions, List<GraphFunction> graphFunctions, List<Parameter> parameters) {
+        public ParseResult(Map<String, String> namedFunctions, List<Function> functions, List<Parameter> parameters) {
             this.namedFunctions = namedFunctions;
-            this.graphFunctions = graphFunctions;
+            this.functions = functions;
             this.parameters = parameters;
         }
         
@@ -46,8 +46,8 @@ public class FunctionParser {
             return namedFunctions;
         }
         
-        public List<GraphFunction> getGraphFunctions() {
-            return graphFunctions;
+        public List<Function> getFunctions() {
+            return functions;
         }
         
         public List<Parameter> getParameters() {
@@ -58,11 +58,12 @@ public class FunctionParser {
     /**
      * Parse a list of function entries into named functions and graph functions
      * @param entries List of function entries to parse
-     * @return ParseResult containing named functions, graph functions, and parameters
+     * @param factory Function factory to create Function instances
+     * @return ParseResult containing named functions, functions, and parameters
      */
-    public static ParseResult parseEntries(List<FunctionEntry> entries) {
+    public static ParseResult parseEntries(List<FunctionEntry> entries, FunctionFactory factory) {
         Map<String, String> namedFunctions = new HashMap<>();
-        List<GraphFunction> graphFunctions = new ArrayList<>();
+        List<Function> functions = new ArrayList<>();
         List<Parameter> parameters = new ArrayList<>();
         
         for (FunctionEntry entry : entries) {
@@ -77,17 +78,14 @@ public class FunctionParser {
                     parameters.add(param);
                 }
             } else if (isNamedFunction(expr)) {
-                parseNamedFunction(expr, color, namedFunctions, graphFunctions);
-            } else if (isRegion(expr)) {
-                parseRegion(expr, color, graphFunctions);
-            } else if (isIntersection(expr)) {
-                parseIntersection(expr, color, graphFunctions);
+                parseNamedFunction(expr, color, namedFunctions, functions, factory);
             } else {
-                graphFunctions.add(new GraphFunction(expr, color));
+                // Create function using factory
+                functions.add(factory.createFunction(expr, color));
             }
         }
         
-        return new ParseResult(namedFunctions, graphFunctions, parameters);
+        return new ParseResult(namedFunctions, functions, parameters);
     }
     
     /**
@@ -131,7 +129,8 @@ public class FunctionParser {
      */
     private static void parseNamedFunction(String expr, Color color, 
                                            Map<String, String> namedFunctions,
-                                           List<GraphFunction> graphFunctions) {
+                                           List<Function> functions,
+                                           FunctionFactory factory) {
         int eqIdx = expr.indexOf('=');
         if (eqIdx <= 0) return;
         
@@ -141,103 +140,9 @@ public class FunctionParser {
         
         namedFunctions.put(name.toLowerCase(), rhs);
         
-        // Add to graph functions for plotting
-        if (isRegion(rhs)) {
-            // Named region: h(x)=(f>=g)
-            String inside = rhs.substring(1, rhs.length() - 1).trim();
-            
-            // Find the operator
-            String operator = null;
-            int opIdx = -1;
-            
-            if (inside.contains(">=")) {
-                operator = ">=";
-                opIdx = inside.indexOf(">=");
-            } else if (inside.contains("<=")) {
-                operator = "<=";
-                opIdx = inside.indexOf("<=");
-            } else if (inside.contains(">")) {
-                operator = ">";
-                opIdx = inside.indexOf(">");
-            } else if (inside.contains("<")) {
-                operator = "<";
-                opIdx = inside.indexOf("<");
-            }
-            
-            if (operator != null && opIdx > 0) {
-                String leftExpr = inside.substring(0, opIdx).trim();
-                String rightExpr = inside.substring(opIdx + operator.length()).trim();
-                GraphFunction gf = GraphFunction.region(leftExpr, operator, rightExpr, color);
-                gf.setName(name);
-                graphFunctions.add(gf);
-            }
-        } else if (isIntersection(rhs)) {
-            // Named intersection: h(x)=(f=g)
-            String inside = rhs.substring(1, rhs.length() - 1).trim();
-            int innerEqIdx = inside.indexOf('=');
-            if (innerEqIdx > 0) {
-                String leftExpr = inside.substring(0, innerEqIdx).trim();
-                String rightExpr = inside.substring(innerEqIdx + 1).trim();
-                GraphFunction gf = GraphFunction.intersection(leftExpr, rightExpr, color);
-                gf.setName(name);
-                graphFunctions.add(gf);
-            }
-        } else {
-            // Regular named function: f(x)=expression
-            GraphFunction gf = new GraphFunction(rhs, color);
-            gf.setName(name);
-            graphFunctions.add(gf);
-        }
-    }
-    
-    /**
-     * Parse an intersection expression
-     */
-    private static void parseIntersection(String expr, Color color,
-                                          List<GraphFunction> graphFunctions) {
-        String inside = expr.trim();
-        inside = inside.substring(1, inside.length() - 1).trim();
-        
-        int eqIdx = inside.indexOf('=');
-        if (eqIdx > 0) {
-            String left = inside.substring(0, eqIdx).trim();
-            String right = inside.substring(eqIdx + 1).trim();
-            graphFunctions.add(GraphFunction.intersection(left, right, color));
-        }
-    }
-    
-    /**
-     * Parse a region expression (e.g., (f(x)>=g(x)))
-     */
-    private static void parseRegion(String expr, Color color,
-                                    List<GraphFunction> graphFunctions) {
-        String inside = expr.trim();
-        inside = inside.substring(1, inside.length() - 1).trim();
-        
-        // Find the operator (>=, <=, >, <)
-        String operator = null;
-        int opIdx = -1;
-        
-        // Check for >= and <= first (two-character operators)
-        if (inside.contains(">=")) {
-            operator = ">=";
-            opIdx = inside.indexOf(">=");
-        } else if (inside.contains("<=")) {
-            operator = "<=";
-            opIdx = inside.indexOf("<=");
-        } else if (inside.contains(">")) {
-            operator = ">";
-            opIdx = inside.indexOf(">");
-        } else if (inside.contains("<")) {
-            operator = "<";
-            opIdx = inside.indexOf("<");
-        }
-        
-        if (operator != null && opIdx > 0) {
-            String left = inside.substring(0, opIdx).trim();
-            String right = inside.substring(opIdx + operator.length()).trim();
-            graphFunctions.add(GraphFunction.region(left, operator, right, color));
-        }
+        // Create the function using factory with the name
+        Function function = factory.createFunction(name, rhs, color);
+        functions.add(function);
     }
     
     /**

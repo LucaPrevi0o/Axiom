@@ -2,8 +2,8 @@ package lib.ui.panel;
 
 import lib.constants.GraphConstants;
 import lib.core.ExpressionEvaluator;
+import lib.model.Function;
 import lib.model.GraphBounds;
-import lib.model.GraphFunction;
 import lib.model.ViewportManager;
 import lib.rendering.GraphRenderer;
 import lib.rendering.IntersectionFinder;
@@ -16,7 +16,7 @@ import java.util.List;
 
 public class GraphPanel extends JPanel {
 
-    private List<GraphFunction> functions;
+    private List<Function> functions;
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
     private java.util.Map<String, Double> parameters = new java.util.HashMap<>();
@@ -140,8 +140,12 @@ public class GraphPanel extends JPanel {
      * Set the functions to be graphed
      * @param functions The list of functions
      */
-    public void setFunctions(List<GraphFunction> functions) {
+    public void setFunctions(List<Function> functions) {
         this.functions = functions;
+        // Invalidate caches when functions change
+        for (Function function : functions) {
+            function.invalidateCache();
+        }
     }
 
     public void setUserFunctions(java.util.Map<String, String> userFunctions) {
@@ -175,8 +179,6 @@ public class GraphPanel extends JPanel {
                 }
             }
         }
-        
-        renderer.setNamedIntersectionPoints(namedIntersectionPoints);
     }
     
     public void setParameters(java.util.Map<String, Double> parameters) {
@@ -186,6 +188,20 @@ public class GraphPanel extends JPanel {
         // Update renderer and intersection finder with new evaluator
         this.intersectionFinder = new IntersectionFinder(evaluator);
         this.renderer = new GraphRenderer(evaluator, intersectionFinder, bounds);
+    }
+    
+    /**
+     * Get the expression evaluator
+     */
+    public ExpressionEvaluator getEvaluator() {
+        return evaluator;
+    }
+    
+    /**
+     * Get the intersection finder
+     */
+    public IntersectionFinder getIntersectionFinder() {
+        return intersectionFinder;
     }
     
     /**
