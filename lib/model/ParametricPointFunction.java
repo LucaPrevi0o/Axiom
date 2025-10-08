@@ -6,6 +6,8 @@ import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * A function representing a single point with coordinates that can be
@@ -77,5 +79,94 @@ public class ParametricPointFunction extends Function {
     @Override
     public boolean isContinuous() {
         return false; // Single point, not a curve
+    }
+    
+    /**
+     * Check if this point is draggable (i.e., depends on at least one parameter)
+     * @return true if the point uses any parameters
+     */
+    public boolean isDraggable() {
+        return hasParameterInExpression(xExpression) || hasParameterInExpression(yExpression);
+    }
+    
+    /**
+     * Get the parameter name used in X coordinate (if any)
+     * For simple cases like "a" or "a+1", returns "a"
+     * For complex cases or no parameter, returns null
+     * @return Parameter name or null
+     */
+    public String getParameterInX() {
+        return extractSingleParameter(xExpression);
+    }
+    
+    /**
+     * Get the parameter name used in Y coordinate (if any)
+     * @return Parameter name or null
+     */
+    public String getParameterInY() {
+        return extractSingleParameter(yExpression);
+    }
+    
+    /**
+     * Check if an expression contains any parameter references
+     */
+    private boolean hasParameterInExpression(String expression) {
+        // A parameter is a word character sequence that is not a function call
+        // and is not 'x' (which is the variable)
+        String expr = expression.toLowerCase();
+        
+        // Look for word boundaries followed by letters (potential parameters)
+        // Exclude common function names and 'x'
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b([a-z_]\\w*)\\b");
+        java.util.regex.Matcher matcher = pattern.matcher(expr);
+        
+        while (matcher.find()) {
+            String token = matcher.group(1);
+            // Skip 'x' and common math functions
+            if (!token.equals("x") && !isMathFunction(token)) {
+                return true; // Found a parameter
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Extract a single parameter name from an expression.
+     * Returns null if the expression doesn't contain exactly one parameter,
+     * or if it's too complex.
+     */
+    private String extractSingleParameter(String expression) {
+        String expr = expression.toLowerCase().trim();
+        
+        // Pattern to find parameter names (word characters that aren't functions)
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b([a-z_]\\w*)\\b");
+        java.util.regex.Matcher matcher = pattern.matcher(expr);
+        
+        String foundParam = null;
+        
+        while (matcher.find()) {
+            String token = matcher.group(1);
+            // Skip 'x' and common math functions
+            if (!token.equals("x") && !isMathFunction(token)) {
+                if (foundParam != null && !foundParam.equals(token)) {
+                    // Multiple different parameters found
+                    return null;
+                }
+                foundParam = token;
+            }
+        }
+        
+        return foundParam;
+    }
+    
+    /**
+     * Check if a token is a known math function name
+     */
+    private boolean isMathFunction(String token) {
+        return token.equals("sin") || token.equals("cos") || token.equals("tan") ||
+               token.equals("sqrt") || token.equals("abs") || token.equals("log") ||
+               token.equals("ln") || token.equals("exp") || token.equals("floor") ||
+               token.equals("ceil");
     }
 }

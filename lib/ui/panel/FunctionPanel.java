@@ -41,6 +41,23 @@ public class FunctionPanel extends JPanel {
         initComponents();
         layoutComponents();
         
+        // Set up listener for parameter updates from point dragging
+        graphPanel.setParameterUpdateListener(new GraphPanel.ParameterUpdateListener() {
+            @Override
+            public void onParameterUpdated(String parameterName, double newValue) {
+                // Find and update the corresponding parameter entry UI
+                for (Component comp : entriesPanel.getComponents()) {
+                    if (comp instanceof ParameterEntry) {
+                        ParameterEntry entry = (ParameterEntry) comp;
+                        if (entry.getParameter().getName().equalsIgnoreCase(parameterName)) {
+                            entry.updateSliderValue(newValue);
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+        
         // Add default function
         addFunction("f(x)=x^2");
     }
@@ -211,8 +228,10 @@ public class FunctionPanel extends JPanel {
         
         // Build parameter values map
         java.util.Map<String, Double> paramValues = new java.util.HashMap<>();
+        java.util.Map<String, Parameter> paramObjects = new java.util.HashMap<>();
         for (Parameter param : parameters) {
             paramValues.put(param.getName().toLowerCase(), param.getCurrentValue());
+            paramObjects.put(param.getName().toLowerCase(), param);
         }
         
         // Parse named functions first to update userFunctions
@@ -227,9 +246,10 @@ public class FunctionPanel extends JPanel {
             }
         }
         
-        // Update GraphPanel's user functions and parameters
+        // Update GraphPanel's user functions, parameters, and parameter objects
         graphPanel.setUserFunctions(namedFunctions);
         graphPanel.setParameters(paramValues);
+        graphPanel.setParameterObjects(paramObjects);
         
         // NOW create factory with the updated evaluator
         FunctionFactory factory = new FunctionFactory(

@@ -1,9 +1,12 @@
 package lib.ui.panel;
 
 import lib.constants.GraphConstants;
+import lib.constants.RenderingConstants;
 import lib.core.ExpressionEvaluator;
 import lib.model.Function;
 import lib.model.GraphBounds;
+import lib.model.Parameter;
+import lib.model.ParametricPointFunction;
 import lib.model.ViewportManager;
 import lib.rendering.GraphRenderer;
 import lib.rendering.IntersectionFinder;
@@ -16,10 +19,18 @@ import java.util.List;
 
 public class GraphPanel extends JPanel {
 
+    /**
+     * Listener interface for parameter updates during point dragging
+     */
+    public interface ParameterUpdateListener {
+        void onParameterUpdated(String parameterName, double newValue);
+    }
+
     private List<Function> functions;
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
     private java.util.Map<String, Double> parameters = new java.util.HashMap<>();
+    private java.util.Map<String, Parameter> parameterObjects = new java.util.HashMap<>();
     
     // Refactored components
     private GraphBounds bounds;
@@ -33,6 +44,17 @@ public class GraphPanel extends JPanel {
     // Track previous dimensions for resize handling
     private int previousWidth = 0;
     private int previousHeight = 0;
+    
+    // Point dragging state
+    private ParametricPointFunction draggedPoint = null;
+    private String draggedParameterX = null;
+    private String draggedParameterY = null;
+    private Parameter draggedParamObjX = null;
+    private Parameter draggedParamObjY = null;
+    private boolean isDraggingPoint = false;
+    
+    // Callback to update parameter sliders in UI
+    private ParameterUpdateListener parameterUpdateListener = null;
 
     /**
      * Constructor to set up the panel
@@ -77,7 +99,7 @@ public class GraphPanel extends JPanel {
     }
     
     /**
-     * Set up mouse listeners for zoom and pan
+     * Set up mouse listeners for zoom, pan, and point dragging
      */
     private void setupMouseListeners() {
         // Mouse wheel for zoom
@@ -88,20 +110,33 @@ public class GraphPanel extends JPanel {
             }
         });
         
-        // Mouse drag for pan
+        // Mouse drag for pan or point dragging
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    viewportManager.startPan(e.getPoint());
-                    setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                    // Check if clicking on a draggable point
+                    ParametricPointFunction clickedPoint = findDraggablePointAt(e.getX(), e.getY());
+                    
+                    if (clickedPoint != null) {
+                        // Start dragging the point
+                        startDraggingPoint(clickedPoint);
+                    } else {
+                        // Start panning the view
+                        viewportManager.startPan(e.getPoint());
+                        setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+                    }
                 }
             }
             
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
-                    viewportManager.endPan();
+                    if (isDraggingPoint) {
+                        endDraggingPoint();
+                    } else {
+                        viewportManager.endPan();
+                    }
                     setCursor(Cursor.getDefaultCursor());
                 }
             }
@@ -109,8 +144,21 @@ public class GraphPanel extends JPanel {
         
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
+            public void mouseMoved(MouseEvent e) {
+                // Update cursor when hovering over draggable points
+                ParametricPointFunction hoverPoint = findDraggablePointAt(e.getX(), e.getY());
+                if (hoverPoint != null) {
+                    setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                } else {
+                    setCursor(Cursor.getDefaultCursor());
+                }
+            }
+            
+            @Override
             public void mouseDragged(MouseEvent e) {
-                if (viewportManager.isDragging()) {
+                if (isDraggingPoint) {
+                    handlePointDrag(e);
+                } else if (viewportManager.isDragging()) {
                     handlePan(e);
                 }
             }
@@ -188,6 +236,170 @@ public class GraphPanel extends JPanel {
         // Update renderer and intersection finder with new evaluator
         this.intersectionFinder = new IntersectionFinder(evaluator);
         this.renderer = new GraphRenderer(evaluator, intersectionFinder, bounds);
+    }
+    
+    /**
+     * Set parameter objects for drag constraints
+     * @param parameterObjects Map of parameter name to Parameter object
+     */
+    public void setParameterObjects(java.util.Map<String, Parameter> parameterObjects) {
+        this.parameterObjects = parameterObjects == null ? new java.util.HashMap<>() : parameterObjects;
+    }
+    
+    /**
+     * Set listener for parameter updates during point dragging
+     */
+    public void setParameterUpdateListener(ParameterUpdateListener listener) {
+        this.parameterUpdateListener = listener;
+    }
+    
+    /**
+     * Find a draggable point at the given screen coordinates
+     * @param screenX Screen X coordinate
+     * @param screenY Screen Y coordinate
+     * @return ParametricPointFunction if found, null otherwise
+     */
+    private ParametricPointFunction findDraggablePointAt(int screenX, int screenY) {
+        final int CLICK_THRESHOLD = RenderingConstants.INTERSECTION_POINT_RADIUS + 3;
+        
+        for (Function function : functions) {
+            if (function instanceof ParametricPointFunction && function.isEnabled()) {
+                ParametricPointFunction pointFunc = (ParametricPointFunction) function;
+                
+                // Only draggable if it uses parameters
+                if (!pointFunc.isDraggable()) {
+                    continue;
+                }
+                
+                // Get the point's current position
+                List<Point2D.Double> points = pointFunc.getPoints(bounds, getWidth(), getHeight());
+                if (points.isEmpty()) {
+                    continue;
+                }
+                
+                Point2D.Double point = points.get(0);
+                
+                // Convert to screen coordinates
+                int pointScreenX = bounds.xToScreen(point.x, getWidth());
+                int pointScreenY = bounds.yToScreen(point.y, getHeight());
+                
+                // Check if click is within threshold
+                double distance = Math.sqrt(
+                    Math.pow(screenX - pointScreenX, 2) + 
+                    Math.pow(screenY - pointScreenY, 2)
+                );
+                
+                if (distance <= CLICK_THRESHOLD) {
+                    return pointFunc;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Start dragging a point
+     */
+    private void startDraggingPoint(ParametricPointFunction point) {
+        draggedPoint = point;
+        isDraggingPoint = true;
+        
+        // Identify which parameters are used in X and Y coordinates
+        draggedParameterX = point.getParameterInX();
+        draggedParameterY = point.getParameterInY();
+        
+        // Find the Parameter objects for constraints
+        draggedParamObjX = findParameter(draggedParameterX);
+        draggedParamObjY = findParameter(draggedParameterY);
+        
+        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+    
+    /**
+     * Handle point dragging
+     */
+    private void handlePointDrag(MouseEvent e) {
+        if (draggedPoint == null) {
+            return;
+        }
+        
+        // Convert screen coordinates to graph coordinates
+        double graphX = bounds.screenToX(e.getX(), getWidth());
+        double graphY = bounds.screenToY(e.getY(), getHeight());
+        
+        // Update parameters based on which coordinate they affect
+        boolean updated = false;
+        
+        if (draggedParameterX != null && draggedParamObjX != null) {
+            // Clamp to parameter bounds
+            double newValue = Math.max(draggedParamObjX.getMinValue(), 
+                              Math.min(draggedParamObjX.getMaxValue(), graphX));
+            
+            // Update parameter value
+            parameters.put(draggedParameterX, newValue);
+            draggedParamObjX.setCurrentValue(newValue);
+            updated = true;
+            
+            // Notify listener (to update slider UI)
+            if (parameterUpdateListener != null) {
+                parameterUpdateListener.onParameterUpdated(draggedParameterX, newValue);
+            }
+        }
+        
+        if (draggedParameterY != null && draggedParamObjY != null) {
+            // Clamp to parameter bounds
+            double newValue = Math.max(draggedParamObjY.getMinValue(), 
+                              Math.min(draggedParamObjY.getMaxValue(), graphY));
+            
+            // Update parameter value
+            parameters.put(draggedParameterY, newValue);
+            draggedParamObjY.setCurrentValue(newValue);
+            updated = true;
+            
+            // Notify listener (to update slider UI)
+            if (parameterUpdateListener != null) {
+                parameterUpdateListener.onParameterUpdated(draggedParameterY, newValue);
+            }
+        }
+        
+        if (updated) {
+            // Recreate evaluator with updated parameters
+            this.evaluator = new ExpressionEvaluator(this.userFunctions, this.parameters);
+            this.intersectionFinder = new IntersectionFinder(evaluator);
+            this.renderer = new GraphRenderer(evaluator, intersectionFinder, bounds);
+            
+            // Invalidate cache to force recomputation
+            draggedPoint.invalidateCache();
+            
+            repaint();
+        }
+    }
+    
+    /**
+     * End point dragging
+     */
+    private void endDraggingPoint() {
+        draggedPoint = null;
+        draggedParameterX = null;
+        draggedParameterY = null;
+        draggedParamObjX = null;
+        draggedParamObjY = null;
+        isDraggingPoint = false;
+    }
+    
+    /**
+     * Find a Parameter object by name
+     */
+    private Parameter findParameter(String name) {
+        if (name == null) {
+            return null;
+        }
+        
+        // We need access to the Parameter objects from FunctionPanel
+        // For now, we'll create a list to store them
+        // This will need to be connected to FunctionPanel
+        return parameterObjects.get(name.toLowerCase());
     }
     
     /**

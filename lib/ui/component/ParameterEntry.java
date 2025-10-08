@@ -194,4 +194,21 @@ public class ParameterEntry extends JPanel {
     public Parameter getParameter() {
         return parameter;
     }
+    
+    /**
+     * Update the slider value externally (e.g., from point dragging)
+     * @param newValue New parameter value
+     */
+    public void updateSliderValue(double newValue) {
+        // Clamp to parameter range
+        newValue = Math.max(parameter.getMinValue(), 
+                   Math.min(parameter.getMaxValue(), newValue));
+        
+        // Update parameter
+        parameter.setCurrentValue(newValue);
+        
+        // Update UI components without triggering listener
+        updateSliderFromParameter();
+        updateValueLabel();
+    }
 }
