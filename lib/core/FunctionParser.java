@@ -1,6 +1,8 @@
-package lib.function;
+package lib.core;
 
-import lib.graph.GraphFunction;
+import lib.model.GraphFunction;
+import lib.model.Parameter;
+import lib.ui.component.FunctionEntry;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;

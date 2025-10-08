@@ -1,7 +1,9 @@
-package lib.function;
+package lib.ui.component;
 
 import lib.constants.UIConstants;
-import lib.expression.ExpressionFormatter;
+import lib.core.FunctionParser;
+import lib.rendering.ExpressionFormatter;
+import lib.ui.panel.FunctionPanel;
 import javax.swing.*;
 import java.awt.*;
 

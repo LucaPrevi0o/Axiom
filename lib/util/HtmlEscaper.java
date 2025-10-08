@@ -1,4 +1,4 @@
-package lib.expression;
+package lib.util;
 
 /**
  * Utility class for HTML escaping

@@ -1,8 +1,10 @@
-package lib.graph;
+package lib.rendering;
 
 import lib.constants.RenderingConstants;
-import lib.expression.ExpressionEvaluator;
-import lib.graph.rendering.*;
+import lib.core.ExpressionEvaluator;
+import lib.model.GraphBounds;
+import lib.model.GraphFunction;
+import lib.rendering.pipeline.*;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.List;

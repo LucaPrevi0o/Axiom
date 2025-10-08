@@ -1,4 +1,4 @@
-package lib.graph;
+package lib.model;
 
 /**
  * Manages graph coordinate bounds and coordinate conversion between

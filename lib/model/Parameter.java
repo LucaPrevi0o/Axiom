@@ -1,4 +1,4 @@
-package lib.function;
+package lib.model;
 
 /**
  * Represents a parameter with a range that can be controlled by a slider

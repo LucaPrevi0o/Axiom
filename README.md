@@ -51,56 +51,110 @@ A Java-based graphing calculator with support for mathematical functions, user-d
 Axiom/
 ├── Axiom.java                    # Main entry point
 ├── lib/
-│   ├── constants/                # NEW: Centralized constants
-│   │   ├── GraphConstants.java   # Zoom, viewport defaults
-│   │   ├── RenderingConstants.java # Colors, strokes, samples
-│   │   ├── UIConstants.java      # UI dimensions, colors
-│   │   └── MathConstants.java    # Numerical precision, epsilon
-│   ├── util/                     # NEW: Utility classes
-│   │   ├── ValidationUtils.java  # Value validation
-│   │   └── FormattingUtils.java  # Number/tick formatting
-│   ├── expression/               # Expression parsing and evaluation
-│   │   ├── ExpressionEvaluator.java
-│   │   ├── ExpressionParser.java
-│   │   ├── ExpressionFormatter.java # LaTeX/HTML rendering
-│   │   └── HtmlEscaper.java
-│   ├── function/                 # Function UI components
-│   │   ├── FunctionEntry.java    # Single function UI
-│   │   ├── FunctionPanel.java    # Function list manager
-│   │   ├── FunctionParser.java   # Expression parsing utility
-│   │   ├── FunctionColorManager.java # Color assignment
+│   ├── core/                     # Core business logic (parsing, evaluation)
+│   │   ├── ExpressionParser.java # Mathematical expression parser
+│   │   ├── ExpressionEvaluator.java # Expression evaluation engine
+│   │   └── FunctionParser.java   # Function definition parser
+│   ├── model/                    # Domain models and data structures
+│   │   ├── GraphFunction.java    # Function representation
+│   │   ├── GraphBounds.java      # Coordinate system bounds
 │   │   ├── Parameter.java        # Parameter model
-│   │   ├── ParameterEntry.java   # Parameter UI with slider
-│   │   ├── ParameterSlider.java  # Slider component
-│   │   └── SimpleDocumentListener.java
-│   ├── graph/                    # Graphing components
-│   │   ├── GraphFunction.java    # Function model
-│   │   ├── GraphPanel.java       # Main graph coordinator
-│   │   ├── GraphingCalculator.java # Main window
-│   │   ├── GraphBounds.java      # Coordinate management
-│   │   ├── IntersectionFinder.java # Numerical methods
-│   │   ├── GraphRenderer.java    # Rendering coordinator
-│   │   ├── ViewportManager.java  # Zoom/pan operations
-│   │   └── rendering/            # Specialized renderers
+│   │   └── ViewportManager.java  # Viewport zoom/pan logic
+│   ├── ui/                       # User interface layer
+│   │   ├── GraphingCalculator.java # Main application window
+│   │   ├── panel/                # Panels
+│   │   │   ├── GraphPanel.java   # Graph display panel
+│   │   │   └── FunctionPanel.java # Function list manager
+│   │   └── component/            # UI components
+│   │       ├── FunctionEntry.java # Single function UI
+│   │       ├── ParameterEntry.java # Parameter with slider
+│   │       ├── ParameterSlider.java # Slider component
+│   │       ├── FunctionColorManager.java # Color assignment
+│   │       └── SimpleDocumentListener.java # Document listener helper
+│   ├── rendering/                # Rendering pipeline
+│   │   ├── GraphRenderer.java    # Main rendering coordinator
+│   │   ├── IntersectionFinder.java # Intersection calculations
+│   │   ├── ExpressionFormatter.java # LaTeX/HTML rendering
+│   │   └── pipeline/             # Specialized renderers
 │   │       ├── AxisRenderer.java # Axes and tick marks
 │   │       ├── GridRenderer.java # Grid lines
 │   │       ├── FunctionPlotter.java # Function curves
-│   │       ├── RegionRenderer.java  # Inequality regions
-│   │       └── TickCalculator.java  # DEPRECATED: Use FormattingUtils
+│   │       ├── RegionRenderer.java # Inequality regions
+│   │       └── TickCalculator.java # DEPRECATED: Use FormattingUtils
+│   ├── util/                     # Utility classes
+│   │   ├── ValidationUtils.java  # Value validation
+│   │   ├── FormattingUtils.java  # Number/tick formatting
+│   │   └── HtmlEscaper.java      # HTML escaping
+│   ├── constants/                # Application constants
+│   │   ├── GraphConstants.java   # Zoom, viewport defaults
+│   │   ├── RenderingConstants.java # Colors, strokes, samples
+│   │   ├── UIConstants.java      # UI dimensions, colors
+│   │   └── MathConstants.java    # Numerical precision
 │   └── jlatexmath.jar            # LaTeX rendering library (optional)
 ├── java/                         # Compiled .class files
 ├── jmake                         # Build script (Unix/macOS)
 ├── jmake.ps1                     # Build script (Windows PowerShell)
 ├── README.md                     # This file
 ├── REFACTORING_SUMMARY.md        # Refactoring overview
-└── REFACTORING_DETAILS.md        # Detailed before/after comparison
+├── REFACTORING_DETAILS.md        # Detailed before/after comparison
+└── PACKAGE_REORGANIZATION.md     # Package structure documentation
 ```
 
 ## Architecture
 
-The application follows a **modular, SOLID-based architecture** with clear separation of concerns:
+The application follows a **layered architecture** with clear separation of concerns:
 
-### Core Components:
+### Package Organization:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    UI Layer (lib.ui)                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │GraphingCalc. │  │  GraphPanel  │  │FunctionPanel │  │
+│  │  (Window)    │  │   (Display)  │  │  (Controls)  │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────┴────────────────────────────────┐
+│              Rendering Layer (lib.rendering)            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │GraphRenderer │  │ExprFormatter │  │Intersection  │  │
+│  │ (Coordinator)│  │   (LaTeX)    │  │   Finder     │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│         │                                                │
+│  ┌──────┴─────────── Pipeline ────────────────┐         │
+│  │ AxisRenderer │ GridRenderer │ FunctionPlotter │      │
+│  └──────────────────────────────────────────────┘       │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────┴────────────────────────────────┐
+│          Model Layer (lib.model) + Core (lib.core)      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │GraphFunction │  │ GraphBounds  │  │  Parameter   │  │
+│  │   (Model)    │  │(Coordinates) │  │   (Model)    │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │ExprParser    │  │ExprEvaluator │  │FunctionParser│  │
+│  │  (Parsing)   │  │ (Evaluation) │  │  (Parsing)   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+┌────────────────────────┴────────────────────────────────┐
+│       Foundation (lib.util + lib.constants)             │
+│  ValidationUtils │ FormattingUtils │ All Constants      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Key Design Principles:
+
+1. **Separation of Concerns**: Each layer has a distinct responsibility
+2. **Dependency Inversion**: UI depends on abstractions, not concrete rendering
+3. **Single Responsibility**: Each class has one clear purpose
+4. **Testability**: Core logic is independent of UI, easily testable
+
+For detailed architecture documentation, see [PACKAGE_REORGANIZATION.md](PACKAGE_REORGANIZATION.md).
+
+## Core Components:
 
 1. **GraphPanel** (Coordinator)
    - Orchestrates rendering and user interactions

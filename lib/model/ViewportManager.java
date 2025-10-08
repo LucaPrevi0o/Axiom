@@ -1,4 +1,4 @@
-package lib.graph;
+package lib.model;
 
 import lib.constants.GraphConstants;
 import lib.util.ValidationUtils;

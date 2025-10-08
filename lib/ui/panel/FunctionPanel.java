@@ -1,6 +1,11 @@
-package lib.function;
+package lib.ui.panel;
 
-import lib.graph.GraphPanel;
+import lib.core.FunctionParser;
+import lib.model.GraphFunction;
+import lib.model.Parameter;
+import lib.ui.component.FunctionColorManager;
+import lib.ui.component.FunctionEntry;
+import lib.ui.component.ParameterEntry;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;

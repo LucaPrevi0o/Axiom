@@ -1,8 +1,8 @@
-package lib.graph.rendering;
+package lib.rendering.pipeline;
 
 import lib.constants.MathConstants;
 import lib.constants.RenderingConstants;
-import lib.graph.GraphBounds;
+import lib.model.GraphBounds;
 import lib.util.FormattingUtils;
 import java.awt.*;
 

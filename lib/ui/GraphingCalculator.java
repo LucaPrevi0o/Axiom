@@ -1,7 +1,8 @@
-package lib.graph;
+package lib.ui;
 
 import lib.constants.UIConstants;
-import lib.function.FunctionPanel;
+import lib.ui.panel.FunctionPanel;
+import lib.ui.panel.GraphPanel;
 import javax.swing.*;
 import java.awt.*;
 

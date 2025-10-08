@@ -1,4 +1,4 @@
-package lib.expression;
+package lib.core;
 import java.util.Map;
 
 public class ExpressionEvaluator {

@@ -1,4 +1,4 @@
-package lib.function;
+package lib.ui.component;
 
 import lib.constants.UIConstants;
 import java.awt.Color;

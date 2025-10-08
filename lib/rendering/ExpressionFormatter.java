@@ -1,5 +1,6 @@
-package lib.expression;
+package lib.rendering;
 
+import lib.util.HtmlEscaper;
 import javax.swing.*;
 import java.awt.*;
 import java.util.regex.*;

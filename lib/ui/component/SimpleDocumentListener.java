@@ -1,4 +1,4 @@
-package lib.function;
+package lib.ui.component;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;

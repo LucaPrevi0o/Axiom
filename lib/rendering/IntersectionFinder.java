@@ -1,8 +1,8 @@
-package lib.graph;
+package lib.rendering;
 
 import lib.constants.MathConstants;
 import lib.constants.RenderingConstants;
-import lib.expression.ExpressionEvaluator;
+import lib.core.ExpressionEvaluator;
 import lib.util.ValidationUtils;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;

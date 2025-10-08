@@ -1,7 +1,12 @@
-package lib.graph;
+package lib.ui.panel;
 
 import lib.constants.GraphConstants;
-import lib.expression.ExpressionEvaluator;
+import lib.core.ExpressionEvaluator;
+import lib.model.GraphBounds;
+import lib.model.GraphFunction;
+import lib.model.ViewportManager;
+import lib.rendering.GraphRenderer;
+import lib.rendering.IntersectionFinder;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;

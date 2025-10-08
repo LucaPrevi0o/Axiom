@@ -1,4 +1,4 @@
-package lib.graph.rendering;
+package lib.rendering.pipeline;
 
 import lib.util.FormattingUtils;
 
