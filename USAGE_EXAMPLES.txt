@@ -1,0 +1,511 @@
+/**
+ * PRACTICAL GUIDE: Using the New UI Entry Hierarchy
+ * 
+ * This file contains practical examples and code snippets for working with
+ * the refactored UI component hierarchy in Axiom.
+ */
+
+// ============================================================================
+// EXAMPLE 1: Creating Different Entry Types
+// ============================================================================
+
+public class FunctionPanelExamples {
+    
+    /**
+     * Example: Add a plottable function (standard curve)
+     */
+    public void addRegularFunction() {
+        // Create the function model
+        String expression = "x^2 + 2*x - 3";
+        Color color = Color.BLUE;
+        PlottableFunction function = new RegularFunction(
+            expression, 
+            color, 
+            evaluator
+        );
+        
+        // Create the UI entry
+        PlottableFunctionEntry entry = new PlottableFunctionEntry(
+            expression,
+            function,
+            this  // FunctionPanel
+        );
+        
+        // Add to panel
+        entriesPanel.add(entry);
+        entriesPanel.add(Box.createVerticalStrut(5));
+        
+        revalidate();
+        repaint();
+        updateGraph();
+    }
+    
+    /**
+     * Example: Add a constant with slider
+     */
+    public void addConstantWithSlider() {
+        // Create the constant function model
+        String expression = "a=[0:10]";
+        ConstantFunction constant = new ConstantFunction(
+            "a",    // name
+            0.0,    // min
+            10.0    // max
+        );
+        
+        // Create the UI entry with slider
+        ConstantFunctionEntry entry = new ConstantFunctionEntry(
+            expression,
+            constant,
+            this  // FunctionPanel
+        );
+        
+        // Add to panel
+        entriesPanel.add(entry);
+        entriesPanel.add(Box.createVerticalStrut(5));
+        
+        revalidate();
+        repaint();
+        updateGraph();
+    }
+    
+    /**
+     * Example: Add a discrete set (no visual controls)
+     */
+    public void addSet() {
+        // Create the set function model
+        String expression = "A={1,2,3,4,5}";
+        List<Double> values = Arrays.asList(1.0, 2.0, 3.0, 4.0, 5.0);
+        SetFunction set = new SetFunction("A", values);
+        
+        // Create the UI entry (simple, no color/checkbox)
+        BaseFunctionEntry entry = new BaseFunctionEntry(
+            expression,
+            set,
+            this  // FunctionPanel
+        );
+        
+        // Add to panel
+        entriesPanel.add(entry);
+        entriesPanel.add(Box.createVerticalStrut(5));
+        
+        revalidate();
+        repaint();
+        updateGraph();
+    }
+    
+    /**
+     * Example: Add an equation (intersection points)
+     */
+    public void addEquation() {
+        // Create the equation function model
+        String expression = "(x^2 = 2*x + 1)";
+        Color color = Color.RED;
+        EquationFunction equation = new EquationFunction(
+            "x^2",       // left side
+            "2*x + 1",   // right side
+            color,
+            intersectionFinder
+        );
+        
+        // Create the UI entry
+        PlottableFunctionEntry entry = new PlottableFunctionEntry(
+            expression,
+            equation,
+            this  // FunctionPanel
+        );
+        
+        // Add to panel
+        entriesPanel.add(entry);
+        entriesPanel.add(Box.createVerticalStrut(5));
+        
+        revalidate();
+        repaint();
+        updateGraph();
+    }
+}
+
+// ============================================================================
+// EXAMPLE 2: Factory Pattern for Entry Creation (Recommended)
+// ============================================================================
+
+/**
+ * Factory for creating the appropriate UI entry type based on Function type
+ */
+public class FunctionEntryFactory {
+    
+    /**
+     * Create the appropriate entry type for a given function
+     */
+    public static AbstractFunctionEntry createEntry(
+            String expression,
+            Function function,
+            FunctionPanel parent) {
+        
+        // Dispatch based on function type
+        if (function instanceof ConstantFunction) {
+            return new ConstantFunctionEntry(
+                expression,
+                (ConstantFunction) function,
+                parent
+            );
+        } 
+        else if (function instanceof PlottableFunction) {
+            return new PlottableFunctionEntry(
+                expression,
+                (PlottableFunction) function,
+                parent
+            );
+        } 
+        else if (function instanceof BaseFunction) {
+            return new BaseFunctionEntry(
+                expression,
+                (BaseFunction) function,
+                parent
+            );
+        }
+        
+        throw new IllegalArgumentException(
+            "Unknown function type: " + function.getClass().getName()
+        );
+    }
+}
+
+// Usage in FunctionPanel:
+public void addFunction(String expression) {
+    // Parse expression to determine type
+    Function function = parseExpression(expression);
+    
+    // Create appropriate entry using factory
+    AbstractFunctionEntry entry = FunctionEntryFactory.createEntry(
+        expression,
+        function,
+        this
+    );
+    
+    // Add to panel
+    entriesPanel.add(entry);
+    entriesPanel.add(Box.createVerticalStrut(5));
+    
+    revalidate();
+    repaint();
+    updateGraph();
+}
+
+// ============================================================================
+// EXAMPLE 3: Handling Entry Updates
+// ============================================================================
+
+public class EntryUpdateExamples {
+    
+    /**
+     * Example: Update a constant value from external source (e.g., dragging)
+     */
+    public void updateConstantFromDrag(String paramName, double newValue) {
+        // Find the constant entry
+        for (Component comp : entriesPanel.getComponents()) {
+            if (comp instanceof ConstantFunctionEntry) {
+                ConstantFunctionEntry entry = (ConstantFunctionEntry) comp;
+                ConstantFunction constant = entry.getConstantFunction();
+                
+                if (constant.getName().equalsIgnoreCase(paramName)) {
+                    // Update the slider and value
+                    entry.updateSliderValue(newValue);
+                    updateGraph();
+                    break;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Example: Toggle function visibility
+     */
+    public void toggleFunctionVisibility(PlottableFunctionEntry entry) {
+        PlottableFunction function = entry.getPlottableFunction();
+        function.setEnabled(!function.isEnabled());
+        updateGraph();
+    }
+    
+    /**
+     * Example: Change function color
+     */
+    public void changeFunctionColor(PlottableFunctionEntry entry, Color newColor) {
+        // Note: PlottableFunction has final color, so need to recreate
+        // For now, just update the UI indicator
+        // TODO: Implement function recreation with new color
+        updateGraph();
+    }
+}
+
+// ============================================================================
+// EXAMPLE 4: Collecting Functions for Rendering
+// ============================================================================
+
+public class GraphUpdateExamples {
+    
+    /**
+     * Example: Collect all plottable functions from entries
+     */
+    public List<PlottableFunction> getPlottableFunctions() {
+        List<PlottableFunction> functions = new ArrayList<>();
+        
+        for (Component comp : entriesPanel.getComponents()) {
+            if (comp instanceof PlottableFunctionEntry) {
+                PlottableFunctionEntry entry = (PlottableFunctionEntry) comp;
+                PlottableFunction function = entry.getPlottableFunction();
+                
+                // Only include if enabled
+                if (entry.isEnabled()) {
+                    functions.add(function);
+                }
+            }
+        }
+        
+        return functions;
+    }
+    
+    /**
+     * Example: Collect all constants for parameter map
+     */
+    public Map<String, Double> getConstantValues() {
+        Map<String, Double> constants = new HashMap<>();
+        
+        for (Component comp : entriesPanel.getComponents()) {
+            if (comp instanceof ConstantFunctionEntry) {
+                ConstantFunctionEntry entry = (ConstantFunctionEntry) comp;
+                ConstantFunction constant = entry.getConstantFunction();
+                
+                constants.put(
+                    constant.getName().toLowerCase(),
+                    constant.getCurrentValue()
+                );
+            }
+        }
+        
+        return constants;
+    }
+    
+    /**
+     * Example: Collect all sets for evaluator
+     */
+    public Map<String, SetFunction> getSets() {
+        Map<String, SetFunction> sets = new HashMap<>();
+        
+        for (Component comp : entriesPanel.getComponents()) {
+            if (comp instanceof BaseFunctionEntry) {
+                BaseFunctionEntry entry = (BaseFunctionEntry) comp;
+                Function function = entry.getFunction();
+                
+                if (function instanceof SetFunction) {
+                    SetFunction set = (SetFunction) function;
+                    sets.put(set.getName().toLowerCase(), set);
+                }
+            }
+        }
+        
+        return sets;
+    }
+}
+
+// ============================================================================
+// EXAMPLE 5: Migration from Old Code
+// ============================================================================
+
+public class MigrationExamples {
+    
+    /**
+     * OLD WAY (before refactoring)
+     */
+    public void addFunctionOldWay(String expression) {
+        Color color = colorManager.getNextColor();
+        boolean isSet = FunctionParser.isSet(expression);
+        
+        // Old: boolean flag to control visual elements
+        FunctionEntry entry = new FunctionEntry(
+            expression, 
+            color, 
+            this, 
+            !isSet  // showVisualControls - confusing!
+        );
+        
+        functionEntries.add(entry);
+        entriesPanel.add(entry);
+    }
+    
+    /**
+     * NEW WAY (after refactoring)
+     */
+    public void addFunctionNewWay(String expression) {
+        // Parse to determine function type
+        Function function = FunctionParser.parse(expression);
+        
+        // Let the type system guide us
+        AbstractFunctionEntry entry;
+        
+        if (function instanceof PlottableFunction) {
+            entry = new PlottableFunctionEntry(
+                expression,
+                (PlottableFunction) function,
+                this
+            );
+        } else if (function instanceof ConstantFunction) {
+            entry = new ConstantFunctionEntry(
+                expression,
+                (ConstantFunction) function,
+                this
+            );
+        } else {
+            entry = new BaseFunctionEntry(
+                expression,
+                (BaseFunction) function,
+                this
+            );
+        }
+        
+        entriesPanel.add(entry);
+        // Much clearer what type of entry we're creating!
+    }
+    
+    /**
+     * OLD WAY: Parameters were separate
+     */
+    public void addParameterOldWay(String expression) {
+        Parameter param = FunctionParser.parseParameter(expression);
+        
+        // Old: Separate ParameterEntry class
+        ParameterEntry entry = new ParameterEntry(
+            param,
+            new ParameterEntry.ParameterChangeListener() {
+                @Override
+                public void onParameterChanged(Parameter p) {
+                    updateGraph();
+                }
+                
+                @Override
+                public void onParameterDeleted(Parameter p) {
+                    removeParameter(p);
+                }
+            }
+        );
+        
+        parameters.add(param);
+        entriesPanel.add(entry);
+    }
+    
+    /**
+     * NEW WAY: Constants are just another function type
+     */
+    public void addParameterNewWay(String expression) {
+        // Parse as ConstantFunction
+        ConstantFunction constant = FunctionParser.parseConstant(expression);
+        
+        // Use ConstantFunctionEntry (part of unified hierarchy)
+        ConstantFunctionEntry entry = new ConstantFunctionEntry(
+            expression,
+            constant,
+            this
+        );
+        
+        entriesPanel.add(entry);
+        // Parameters are now just another function type!
+    }
+}
+
+// ============================================================================
+// EXAMPLE 6: Custom Entry Types (Future Extension)
+// ============================================================================
+
+/**
+ * Example: Custom entry for matrix functions (future feature)
+ */
+public class MatrixFunctionEntry extends BaseFunctionEntry {
+    
+    private MatrixFunction matrixFunction;
+    private JButton matrixEditorButton;
+    
+    public MatrixFunctionEntry(
+            String expression, 
+            MatrixFunction function, 
+            FunctionPanel parent) {
+        super(expression, function, parent);
+        this.matrixFunction = function;
+    }
+    
+    @Override
+    protected void layoutSpecificComponents(JPanel topPanel) {
+        // Add matrix editor button
+        matrixEditorButton = new JButton("Edit Matrix");
+        matrixEditorButton.addActionListener(e -> openMatrixEditor());
+        topPanel.add(matrixEditorButton);
+    }
+    
+    private void openMatrixEditor() {
+        // Open custom matrix editing dialog
+        MatrixEditorDialog dialog = new MatrixEditorDialog(matrixFunction);
+        dialog.setVisible(true);
+        
+        if (dialog.wasUpdated()) {
+            parent.updateGraph();
+        }
+    }
+    
+    @Override
+    protected boolean updateFromEdit(String newExpression) {
+        // Matrix-specific parsing logic
+        return true;
+    }
+    
+    @Override
+    public Function getFunction() {
+        return matrixFunction;
+    }
+}
+
+/**
+ * Example: Enhanced entry for point functions with drag controls
+ */
+public class PointFunctionEntry extends PlottableFunctionEntry {
+    
+    private PointFunction pointFunction;
+    private JCheckBox draggableCheckbox;
+    
+    public PointFunctionEntry(
+            String expression,
+            PointFunction function,
+            FunctionPanel parent) {
+        super(expression, function, parent);
+        this.pointFunction = function;
+    }
+    
+    @Override
+    protected void layoutSpecificComponents(JPanel topPanel) {
+        // Add standard plottable controls
+        super.layoutSpecificComponents(topPanel);
+        
+        // Add draggable checkbox
+        draggableCheckbox = new JCheckBox("Draggable");
+        draggableCheckbox.setSelected(true);
+        draggableCheckbox.addActionListener(e -> {
+            pointFunction.setDraggable(draggableCheckbox.isSelected());
+            parent.updateGraph();
+        });
+        
+        topPanel.add(draggableCheckbox, 1); // Insert after color indicator
+    }
+}
+
+// ============================================================================
+// BEST PRACTICES
+// ============================================================================
+
+/**
+ * 1. Always use the factory pattern for creating entries
+ * 2. Let the type system guide you - no boolean flags
+ * 3. Each entry type should handle only its specific UI needs
+ * 4. Keep the model (Function) and view (Entry) synchronized
+ * 5. Use polymorphism - treat all entries uniformly in collections
+ * 6. When extending, choose the appropriate base class:
+ *    - BaseFunctionEntry for non-visual definitions
+ *    - PlottableFunctionEntry for rendered functions
+ * 7. Override only what you need - base classes handle common logic
+ */

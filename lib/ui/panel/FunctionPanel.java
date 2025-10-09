@@ -1,11 +1,12 @@
 package lib.ui.panel;
 
-import lib.core.parser.FunctionParser;
 import lib.core.factory.FunctionFactory;
-import lib.model.domain.Parameter;
-import lib.ui.component.FunctionColorManager;
-import lib.ui.component.FunctionEntry;
-import lib.ui.component.ParameterEntry;
+import lib.core.parser.FunctionParser;
+import lib.ui.component.entry.AbstractFunctionEntry;
+import lib.ui.component.entry.BaseFunctionEntry;
+import lib.ui.component.entry.ConstantFunctionEntry;
+import lib.ui.component.entry.PlottableFunctionEntry;
+import lib.ui.component.factory.FunctionEntryFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -13,16 +14,15 @@ import java.util.List;
 
 /**
  * Panel for managing function entries and parameters
- * Uses a unified list for both types
+ * Refactored to use new AbstractFunctionEntry hierarchy
  */
 public class FunctionPanel extends JPanel {
     
     private final GraphPanel graphPanel;
-    private final List<FunctionEntry> functionEntries;
-    private final List<Parameter> parameters;
-    private final FunctionColorManager colorManager;
+    private final List<AbstractFunctionEntry> functionEntries;  // Changed to AbstractFunctionEntry
     private final JPanel entriesPanel;
     private final JButton addButton;
+    private FunctionEntryFactory entryFactory;  // New: factory for creating entries
     
     private java.util.Map<String, String> namedFunctions = new java.util.HashMap<>();
     
@@ -33,8 +33,6 @@ public class FunctionPanel extends JPanel {
     public FunctionPanel(GraphPanel graphPanel) {
         this.graphPanel = graphPanel;
         this.functionEntries = new ArrayList<>();
-        this.parameters = new ArrayList<>();
-        this.colorManager = new FunctionColorManager();
         this.entriesPanel = new JPanel();
         this.addButton = new JButton("+ Add Function");
         
@@ -45,12 +43,12 @@ public class FunctionPanel extends JPanel {
         graphPanel.setParameterUpdateListener(new GraphPanel.ParameterUpdateListener() {
             @Override
             public void onParameterUpdated(String parameterName, double newValue) {
-                // Find and update the corresponding parameter entry UI
+                // Find and update the corresponding constant entry UI
                 for (Component comp : entriesPanel.getComponents()) {
-                    if (comp instanceof ParameterEntry) {
-                        ParameterEntry entry = (ParameterEntry) comp;
-                        if (entry.getParameter().getName().equalsIgnoreCase(parameterName)) {
-                            entry.updateSliderValue(newValue);
+                    if (comp instanceof ConstantFunctionEntry) {
+                        ConstantFunctionEntry entry = (ConstantFunctionEntry) comp;
+                        if (entry.getConstantFunction().getName().equalsIgnoreCase(parameterName)) {
+                            entry.setValue(newValue);
                             break;
                         }
                     }
@@ -92,57 +90,22 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Add a new function or parameter
+     * Add a new function or parameter using the new entry system
      */
     public void addFunction(String expression) {
-        Color color = colorManager.getNextColor();
-        
-        // Check if this is a parameter definition
-        if (FunctionParser.isParameter(expression.trim())) {
-            Parameter param = FunctionParser.parseParameter(expression.trim());
-            if (param != null) {
-                addParameterEntry(param, color);
-                return;
-            }
+        // Initialize factory if needed
+        if (entryFactory == null) {
+            FunctionFactory funcFactory = new FunctionFactory(
+                graphPanel.getEvaluator(),
+                graphPanel.getIntersectionFinder()
+            );
+            entryFactory = new FunctionEntryFactory(funcFactory, this);
         }
         
-        // Check if this is a set - sets should not show visual controls
-        boolean isSet = FunctionParser.isSet(expression.trim());
-        
-        // Otherwise, create a regular function entry
-        FunctionEntry entry = new FunctionEntry(expression, color, this, !isSet);
-        functionEntries.add(entry);
-        entriesPanel.add(entry);
-        entriesPanel.add(Box.createVerticalStrut(5));
-        
-        revalidate();
-        repaint();
-        updateGraph();
-    }
-    
-    /**
-     * Add a parameter entry
-     */
-    private void addParameterEntry(Parameter param, Color color) {
-        // Check if parameter already exists
-        boolean exists = parameters.stream()
-            .anyMatch(p -> p.getName().equalsIgnoreCase(param.getName()));
-        
-        if (!exists) {
-            parameters.add(param);
-            
-            ParameterEntry entry = new ParameterEntry(param, new ParameterEntry.ParameterChangeListener() {
-                @Override
-                public void onParameterChanged(Parameter parameter) {
-                    updateGraph();
-                }
-                
-                @Override
-                public void onParameterDeleted(Parameter parameter) {
-                    removeParameter(parameter);
-                }
-            });
-            
+        // Use factory to create appropriate entry type
+        AbstractFunctionEntry entry = entryFactory.createEntry(expression);
+        if (entry != null) {
+            functionEntries.add(entry);
             entriesPanel.add(entry);
             entriesPanel.add(Box.createVerticalStrut(5));
             
@@ -153,20 +116,18 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Remove a function
+     * Remove a function entry (new API for AbstractFunctionEntry)
      */
-    public void removeFunction(FunctionEntry entry) {
-        removeFunctionInternal(entry);
+    public void removeFunctionEntry(AbstractFunctionEntry entry) {
+        removeFunctionEntryInternal(entry);
         updateGraph();
     }
     
     /**
-     * Remove a function without updating the graph
+     * Remove an abstract function entry without updating the graph
      * Used internally when we know updateGraph will be called later
      */
-    private void removeFunctionInternal(FunctionEntry entry) {
-        functionEntries.remove(entry);
-        
+    private void removeFunctionEntryInternal(AbstractFunctionEntry entry) {
         // Find and remove the entry from the panel
         Component[] components = entriesPanel.getComponents();
         for (int i = 0; i < components.length; i++) {
@@ -185,118 +146,63 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
-     * Convert a FunctionEntry to a ParameterEntry
-     */
-    public void convertToParameter(FunctionEntry entry, String expression) {
-        // Parse the parameter
-        Parameter param = FunctionParser.parseParameter(expression);
-        if (param == null) {
-            return;
-        }
-        
-        // Get the color from the entry before removing it
-        Color color = entry.getColor();
-        
-        // Remove the old function entry
-        removeFunction(entry);
-        
-        // Add the parameter entry
-        addParameterEntry(param, color);
-    }
-    
-    /**
-     * Recreate a FunctionEntry with correct visual controls based on expression type
-     * Used when an expression changes between set and non-set types
-     */
-    public void recreateFunctionEntry(FunctionEntry oldEntry, String newExpression) {
-        // Get the color and enabled state from the old entry
-        Color color = oldEntry.getColor();
-        
-        // Remove the old function entry (without calling updateGraph)
-        removeFunctionInternal(oldEntry);
-        
-        // Check if this is a set - sets should not show visual controls
-        boolean isSet = FunctionParser.isSet(newExpression.trim());
-        
-        // Create a new function entry with appropriate visual controls
-        FunctionEntry newEntry = new FunctionEntry(newExpression, color, this, !isSet);
-        functionEntries.add(newEntry);
-        entriesPanel.add(newEntry);
-        entriesPanel.add(Box.createVerticalStrut(5));
-        
-        revalidate();
-        repaint();
-        updateGraph(); // Update once with the new entry included
-    }
-    
-    /**
-     * Remove a parameter
-     */
-    private void removeParameter(Parameter parameter) {
-        parameters.removeIf(p -> p.getName().equalsIgnoreCase(parameter.getName()));
-        
-        Component[] components = entriesPanel.getComponents();
-        for (int i = 0; i < components.length; i++) {
-            if (components[i] instanceof ParameterEntry) {
-                ParameterEntry entry = (ParameterEntry) components[i];
-                if (entry.getParameter().getName().equalsIgnoreCase(parameter.getName())) {
-                    entriesPanel.remove(i); // Remove entry
-                    if (i < components.length - 1) {
-                        entriesPanel.remove(i); // Remove spacer
-                    }
-                    break;
-                }
-            }
-        }
-        
-        revalidate();
-        repaint();
-        updateGraph();
-    }
-    
-    /**
      * Update graph with all current functions
+     * Refactored to work with new AbstractFunctionEntry hierarchy
      */
     public void updateGraph() {
-        // IMPORTANT: Update parameters FIRST before creating the factory
-        // This ensures the ExpressionEvaluator has the latest parameter values
-        // when creating ParametricPointFunction instances
-        
-        // Build parameter values map
+        // Build parameter values map from ConstantFunctionEntry instances
         java.util.Map<String, Double> paramValues = new java.util.HashMap<>();
-        java.util.Map<String, Parameter> paramObjects = new java.util.HashMap<>();
-        for (Parameter param : parameters) {
-            paramValues.put(param.getName().toLowerCase(), param.getCurrentValue());
-            paramObjects.put(param.getName().toLowerCase(), param);
+        java.util.Map<String, lib.model.function.definition.ConstantFunction> constantFunctions = new java.util.HashMap<>();
+        
+        for (AbstractFunctionEntry entry : functionEntries) {
+            if (entry instanceof ConstantFunctionEntry) {
+                ConstantFunctionEntry constEntry = (ConstantFunctionEntry) entry;
+                lib.model.function.definition.ConstantFunction constant = constEntry.getConstantFunction();
+                paramValues.put(constant.getName().toLowerCase(), constant.getCurrentValue());
+                constantFunctions.put(constant.getName().toLowerCase(), constant);
+            }
         }
         
         // Parse named functions first to update userFunctions
         namedFunctions = new java.util.HashMap<>();
-        for (FunctionEntry entry : functionEntries) {
-            if (entry.isEnabled() && FunctionParser.isNamedFunction(entry.getExpression())) {
-                String name = FunctionParser.extractName(entry.getExpression());
-                String rhs = FunctionParser.extractRHS(entry.getExpression());
-                if (name != null && rhs != null) {
-                    namedFunctions.put(name.toLowerCase(), rhs);
+        for (AbstractFunctionEntry entry : functionEntries) {
+            if (entry instanceof PlottableFunctionEntry) {
+                PlottableFunctionEntry plotEntry = (PlottableFunctionEntry) entry;
+                if (plotEntry.isEnabled() && FunctionParser.isNamedFunction(entry.getExpression())) {
+                    String name = FunctionParser.extractName(entry.getExpression());
+                    String rhs = FunctionParser.extractRHS(entry.getExpression());
+                    if (name != null && rhs != null) {
+                        namedFunctions.put(name.toLowerCase(), rhs);
+                    }
                 }
             }
         }
         
-        // Update GraphPanel's user functions, parameters, and parameter objects
+        // Update GraphPanel's user functions and parameters
         graphPanel.setUserFunctions(namedFunctions);
         graphPanel.setParameters(paramValues);
-        graphPanel.setParameterObjects(paramObjects);
         
-        // NOW create factory with the updated evaluator
-        FunctionFactory factory = new FunctionFactory(
-            graphPanel.getEvaluator(), 
-            graphPanel.getIntersectionFinder()
-        );
+        // Build lists of plottable functions and sets
+        java.util.List<lib.model.function.base.PlottableFunction> plottableFunctions = new java.util.ArrayList<>();
+        java.util.List<lib.model.function.definition.SetFunction> setsList = new java.util.ArrayList<>();
         
-        // Parse function entries using factory (now has correct parameters)
-        FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, factory);
+        for (AbstractFunctionEntry entry : functionEntries) {
+            if (entry instanceof PlottableFunctionEntry) {
+                PlottableFunctionEntry plotEntry = (PlottableFunctionEntry) entry;
+                if (plotEntry.isEnabled()) {
+                    plottableFunctions.add(plotEntry.getPlottableFunction());
+                }
+            } else if (entry instanceof BaseFunctionEntry) {
+                // Check if it's a set
+                lib.model.function.base.Function func = entry.getFunction();
+                if (func instanceof lib.model.function.definition.SetFunction) {
+                    lib.model.function.definition.SetFunction set = (lib.model.function.definition.SetFunction) func;
+                    setsList.add(set);
+                }
+            }
+        }
         
-        graphPanel.setFunctions(result.getFunctions(), result.getSets());
+        graphPanel.setFunctions(plottableFunctions, setsList);
         graphPanel.repaint();
     }
     

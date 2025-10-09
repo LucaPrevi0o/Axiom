@@ -1,0 +1,199 @@
+                    UI COMPONENT HIERARCHY DIAGRAM
+================================================================================
+
+DOMAIN MODEL                          UI ENTRY COMPONENTS
+(lib.model)                          (lib.ui.component)
+
+┌─────────────────────┐              ┌──────────────────────────────┐
+│   Function          │              │  AbstractFunctionEntry       │
+│   (abstract)        │              │  (abstract base)             │
+│                     │              │                              │
+│  - name: String     │              │  Common Components:          │
+│  - enabled: boolean │              │  - expressionField           │
+│                     │              │  - displayLabel              │
+└──────────┬──────────┘              │  - editButton                │
+           │                         │  - deleteButton              │
+           │                         │  - topPanel, centerPanel     │
+    ┌──────┴──────┐                 │                              │
+    │             │                  │  Abstract Methods:           │
+    ▼             ▼                  │  - layoutSpecificComponents()│
+                                     │  - updateFromEdit()          │
+┌────────────┐  ┌──────────────┐   │  - getFunction()             │
+│BaseFunction│  │PlottableFunc │    └─────────────┬────────────────┘
+│            │  │              │                   │
+│ Examples:  │  │ - color      │            ┌──────┴────────┐
+│ - Constant │  │ - points[]   │            │               │
+│ - Set      │  │              │            ▼               ▼
+└──────┬─────┘  └──────┬───────┘
+       │               │         ┌──────────────────┐  ┌────────────────────┐
+       │               │         │BaseFunctionEntry │  │PlottableFunction   │
+       │               │         │                  │  │Entry               │
+       │               │         │ UI:              │  │                    │
+       ▼               ▼         │ - Expression     │  │ UI:                │
+┌──────────────┐  ┌─────────┐  │ - Delete btn     │  │ - Expression       │
+│ConstantFunc  │  │Regular  │   │                  │  │ - Delete btn       │
+│              │  │Equation │   │ NO:              │  │ - Color indicator  │
+│ - minValue   │  │Point    │   │ - Color picker   │  │ - Enable checkbox  │
+│ - maxValue   │  │Region   │   │ - Checkbox       │  │                    │
+│ - discrete   │  └─────────┘   │ - Slider         │  │ For:               │
+└──────┬───────┘                └─────────┬────────┘  │ - RegularFunction  │
+       │                                  │            │ - EquationFunction │
+       │                                  │            │ - PointFunction    │
+       ▼                                  ▼            │ - InequationFunc   │
+┌──────────────────┐          ┌────────────────────┐  └────────────────────┘
+│ConstantFunction  │          │ SetFunction        │
+│Entry             │          │ (future: custom    │
+│                  │          │  SetFunctionEntry) │
+│ UI:              │          └────────────────────┘
+│ - Expression     │
+│ - Delete btn     │          INHERITANCE FLOW:
+│ - Slider ✨      │          ═══════════════════
+│ - Value label    │
+│ - Min/Max labels │          AbstractFunctionEntry (base)
+│                  │                    │
+│ Extends:         │              ┌─────┴──────┐
+│ BaseFunctionEntry│              │            │
+│                  │              ▼            ▼
+│ Height: 150px    │         BaseFunctionEntry  PlottableFunctionEntry
+└──────────────────┘              │
+                                  │
+                                  ▼
+                           ConstantFunctionEntry
+
+
+COMPONENT BREAKDOWN BY TYPE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ABSTRACT FUNCTION ENTRY (base for all)                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Layout:                                                                 │
+│ ┌─────────────────────────────────────────────────────────────────┐   │
+│ │ TOP PANEL:    [Specific Controls] [Edit] [×]                    │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │ CENTER PANEL: Expression Display / Edit Field (CardLayout)      │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │ ADDITIONAL:   (Subclass-specific, e.g., slider)                 │   │
+│ └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ BASE FUNCTION ENTRY (non-plottable)                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Example: A={1,2,3}                                                      │
+│ ┌─────────────────────────────────────────────────────────────────┐   │
+│ │ [Edit] [×]                                                       │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │ A={1,2,3}                                                        │   │
+│ └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ CONSTANT FUNCTION ENTRY (with slider)                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Example: a=[0:10]                                                       │
+│ ┌─────────────────────────────────────────────────────────────────┐   │
+│ │ [Edit] [×]                                                       │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │ a=[0:10]                                                         │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │                       = 5.0                                      │   │
+│ │    ├────────●─────────────────────────────────┤                 │   │
+│ │   0.0                                       10.0                 │   │
+│ └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PLOTTABLE FUNCTION ENTRY (with visual controls)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Example: f(x)=x²                                                        │
+│ ┌─────────────────────────────────────────────────────────────────┐   │
+│ │ [■] [✓] [Edit] [×]                                               │   │
+│ │  ↑   ↑                                                           │   │
+│ │  │   └─ Enable checkbox                                         │   │
+│ │  └───── Color indicator (clickable)                             │   │
+│ ├─────────────────────────────────────────────────────────────────┤   │
+│ │ f(x)=x²                                                          │   │
+│ └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+DECISION TREE: Which Entry Type to Use?
+================================================================================
+
+                        ┌─────────────────┐
+                        │  Function Type  │
+                        └────────┬────────┘
+                                 │
+                    ┌────────────┴───────────┐
+                    │                        │
+                    ▼                        ▼
+            ┌──────────────┐        ┌──────────────┐
+            │ BaseFunction │        │ Plottable    │
+            │              │        │ Function     │
+            └──────┬───────┘        └──────┬───────┘
+                   │                       │
+         ┌─────────┴────────┐             │
+         │                  │              │
+         ▼                  ▼              ▼
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
+  │Has slider    │  │No slider     │  │PlottableFunction │
+  │range?        │  │              │  │Entry             │
+  │              │  │              │  │                  │
+  │YES: Constant │  │NO: Simple    │  │ALL plottable    │
+  │FunctionEntry │  │BaseFn Entry  │  │types use this   │
+  └──────────────┘  └──────────────┘  └──────────────────┘
+
+
+USAGE IN FUNCTION PANEL
+================================================================================
+
+OLD WAY (Deprecated):
+─────────────────────
+FunctionEntry entry = new FunctionEntry(expr, color, this, showVisualControls);
+ParameterEntry paramEntry = new ParameterEntry(param, listener);
+
+NEW WAY (Recommended):
+──────────────────────
+// Analyze function type
+Function function = factory.createFunction(expression);
+
+if (function instanceof PlottableFunction) {
+    PlottableFunctionEntry entry = new PlottableFunctionEntry(
+        expression, 
+        (PlottableFunction) function, 
+        this
+    );
+} else if (function instanceof ConstantFunction) {
+    ConstantFunctionEntry entry = new ConstantFunctionEntry(
+        expression, 
+        (ConstantFunction) function, 
+        this
+    );
+} else if (function instanceof BaseFunction) {
+    BaseFunctionEntry entry = new BaseFunctionEntry(
+        expression, 
+        (BaseFunction) function, 
+        this
+    );
+}
+
+
+KEY DESIGN PATTERNS
+================================================================================
+
+1. TEMPLATE METHOD
+   - AbstractFunctionEntry defines the structure
+   - Subclasses fill in specific behaviors
+
+2. FACTORY (suggested for future)
+   - FunctionEntryFactory.create(Function, String, FunctionPanel)
+   - Returns appropriate entry type
+
+3. POLYMORPHISM
+   - All entries treated uniformly in FunctionPanel
+   - Each knows how to render itself
+
+4. SEPARATION OF CONCERNS
+   - Model (Function) separate from View (Entry)
+   - Each entry type handles only its UI needs

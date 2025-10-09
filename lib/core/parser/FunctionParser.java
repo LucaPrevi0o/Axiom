@@ -4,7 +4,6 @@ import lib.model.function.base.PlottableFunction;
 import lib.model.function.definition.SetFunction;
 import lib.model.domain.Parameter;
 import lib.core.factory.FunctionFactory;
-import lib.ui.component.FunctionEntry;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,52 +79,6 @@ public class FunctionParser {
         public List<Parameter> getParameters() {
             return parameters;
         }
-    }
-    
-    /**
-     * Parse a list of function entries into named functions and graph functions
-     * @param entries List of function entries to parse
-     * @param factory Function factory to create Function instances
-     * @return ParseResult containing named functions, functions, and parameters
-     */
-    public static ParseResult parseEntries(List<FunctionEntry> entries, FunctionFactory factory) {
-        Map<String, String> namedFunctions = new HashMap<>();
-        List<PlottableFunction> functions = new ArrayList<>();
-        List<SetFunction> sets = new ArrayList<>();
-        List<Parameter> parameters = new ArrayList<>();
-        
-        for (FunctionEntry entry : entries) {
-            if (!entry.isEnabled()) continue;
-            
-            String expr = entry.getExpression().trim();
-            
-            // Skip empty expressions
-            if (expr.isEmpty()) continue;
-            
-            Color color = entry.getColor();
-            
-            if (isParameter(expr)) {
-                Parameter param = parseParameter(expr);
-                if (param != null) {
-                    parameters.add(param);
-                }
-            } else if (isSet(expr)) {
-                // Handle set definitions (explicit or range)
-                SetFunction setFunc = factory.createSetFunction(expr);
-                if (setFunc != null) {
-                    sets.add(setFunc);
-                }
-            } else if (isPoint(expr)) {
-                parsePoint(expr, color, functions, factory);
-            } else if (isNamedFunction(expr)) {
-                parseNamedFunction(expr, color, namedFunctions, functions, factory);
-            } else {
-                // Create function using factory
-                functions.add(factory.createFunction(expr, color));
-            }
-        }
-        
-        return new ParseResult(namedFunctions, functions, sets, parameters);
     }
     
     /**
