@@ -1,42 +1,45 @@
-package lib.model;
+package lib.model.function.composite;
 
+import lib.model.function.base.PlottableFunction;
+import lib.model.domain.GraphBounds;
 import lib.rendering.IntersectionFinder;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.List;
 
 /**
- * A function defined by intersection points between two expressions.
- * For syntax like (f(x) = g(x)), this computes and displays only the intersection points.
+ * A function representing equation solutions as intersection points.
+ * For syntax like (f(x) = g(x)), this computes and displays the solution points.
+ * Renamed from IntersectionFunction for better semantic clarity.
  */
-public class IntersectionFunction extends Function {
+public class EquationFunction extends PlottableFunction {
     
     private final String leftExpression;
     private final String rightExpression;
     private final IntersectionFinder intersectionFinder;
     
     /**
-     * Create an intersection function
+     * Create an equation function
      * @param leftExpression Left side of equation (e.g., "x^2")
      * @param rightExpression Right side of equation (e.g., "2*x + 1")
      * @param color Display color
      * @param intersectionFinder Intersection finder to use
      */
-    public IntersectionFunction(String leftExpression, String rightExpression, 
-                                Color color, IntersectionFinder intersectionFinder) {
+    public EquationFunction(String leftExpression, String rightExpression, 
+                           Color color, IntersectionFinder intersectionFinder) {
         this(null, leftExpression, rightExpression, color, intersectionFinder);
     }
     
     /**
-     * Create a named intersection function
+     * Create a named equation function
      * @param name Function name (e.g., "h")
      * @param leftExpression Left side of equation
      * @param rightExpression Right side of equation
      * @param color Display color
      * @param intersectionFinder Intersection finder to use
      */
-    public IntersectionFunction(String name, String leftExpression, String rightExpression,
-                                Color color, IntersectionFinder intersectionFinder) {
+    public EquationFunction(String name, String leftExpression, String rightExpression,
+                           Color color, IntersectionFinder intersectionFinder) {
         super(name, color);
         this.leftExpression = leftExpression;
         this.rightExpression = rightExpression;
@@ -76,6 +79,6 @@ public class IntersectionFunction extends Function {
     
     @Override
     public boolean isContinuous() {
-        return false; // Intersections are discrete points
+        return false; // Equations have discrete solution points
     }
 }

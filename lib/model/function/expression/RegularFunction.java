@@ -1,7 +1,9 @@
-package lib.model;
+package lib.model.function.expression;
 
+import lib.model.function.base.PlottableFunction;
+import lib.model.domain.GraphBounds;
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
+import lib.core.evaluation.ExpressionEvaluator;
 import lib.util.ValidationUtils;
 import java.awt.Color;
 import java.awt.geom.Point2D;
@@ -9,10 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A function defined by a mathematical expression: y = f(x)
+ * A regular function defined by a mathematical expression: y = f(x)
  * This is the standard function type for plotting curves.
+ * Renamed from ExpressionFunction for better semantic clarity.
  */
-public class ExpressionFunction extends Function {
+public class RegularFunction extends PlottableFunction {
     
     private final String expression;
     private final ExpressionEvaluator evaluator;
@@ -23,7 +26,7 @@ public class ExpressionFunction extends Function {
      * @param color Display color
      * @param evaluator Expression evaluator to use
      */
-    public ExpressionFunction(String expression, Color color, ExpressionEvaluator evaluator) {
+    public RegularFunction(String expression, Color color, ExpressionEvaluator evaluator) {
         this(null, expression, color, evaluator);
     }
     
@@ -34,7 +37,7 @@ public class ExpressionFunction extends Function {
      * @param color Display color
      * @param evaluator Expression evaluator to use
      */
-    public ExpressionFunction(String name, String expression, Color color, ExpressionEvaluator evaluator) {
+    public RegularFunction(String name, String expression, Color color, ExpressionEvaluator evaluator) {
         super(name, color);
         this.expression = expression;
         this.evaluator = evaluator;

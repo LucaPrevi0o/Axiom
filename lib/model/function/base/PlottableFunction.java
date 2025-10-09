@@ -1,41 +1,35 @@
-package lib.model;
+package lib.model.function.base;
 
+import lib.model.domain.GraphBounds;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstract base class for all plottable functions.
+ * Abstract class for functions that can be plotted on the graph.
+ * Extends Function with color, point computation, and caching.
  * Uses Template Method pattern - subclasses define how points are computed,
- * base class manages the point list and common properties.
+ * this class manages the point list and common plottable properties.
+ * 
+ * Examples: Regular functions, Equations, Inequations, Points
  */
-public abstract class Function {
+public abstract class PlottableFunction extends Function {
     
-    protected final String name;
     protected final Color color;
-    protected boolean enabled;
     protected List<Point2D.Double> cachedPoints;
     protected boolean pointsCacheValid;
     
     /**
-     * Create a function with a name and color
+     * Create a plottable function with a name and color
      * @param name Function name (e.g., "f", "g", or null for anonymous)
      * @param color Display color
      */
-    protected Function(String name, Color color) {
-        this.name = name;
+    protected PlottableFunction(String name, Color color) {
+        super(name);
         this.color = color;
-        this.enabled = true;
         this.cachedPoints = new ArrayList<>();
         this.pointsCacheValid = false;
-    }
-    
-    /**
-     * Get the function name (may be null for anonymous functions)
-     */
-    public String getName() {
-        return name;
     }
     
     /**
@@ -43,20 +37,6 @@ public abstract class Function {
      */
     public Color getColor() {
         return color;
-    }
-    
-    /**
-     * Check if function is enabled for display
-     */
-    public boolean isEnabled() {
-        return enabled;
-    }
-    
-    /**
-     * Set whether function is enabled
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
     
     /**
@@ -93,29 +73,13 @@ public abstract class Function {
     protected abstract List<Point2D.Double> computePoints(GraphBounds bounds, int width, int height);
     
     /**
-     * Get a display string for this function (for UI)
-     * @return Human-readable representation
+     * Check if this function represents a continuous curve
+     * @return true if continuous, false if discrete points
      */
-    public abstract String getDisplayString();
-    
-    /**
-     * Check if this function should be rendered as a continuous curve
-     * @return true for continuous functions, false for discrete points
-     */
-    public boolean isContinuous() {
-        return true; // Most functions are continuous
-    }
-    
-    /**
-     * Check if this function should be rendered as a filled region
-     * @return true for region functions (inequalities)
-     */
-    public boolean isRegion() {
-        return false; // Most functions are not regions
-    }
+    public abstract boolean isContinuous();
     
     @Override
-    public String toString() {
-        return (name != null ? name + ": " : "") + getDisplayString();
+    public final boolean isPlottable() {
+        return true;
     }
 }

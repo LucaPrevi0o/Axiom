@@ -1,7 +1,7 @@
 package lib.ui.component;
 
 import lib.constants.UIConstants;
-import lib.model.Parameter;
+import lib.model.domain.Parameter;
 import javax.swing.*;
 import java.awt.*;
 import java.text.DecimalFormat;

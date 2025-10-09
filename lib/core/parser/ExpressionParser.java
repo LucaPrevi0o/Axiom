@@ -1,4 +1,6 @@
-package lib.core;
+package lib.core.parser;
+
+import lib.core.evaluation.ExpressionEvaluator;
 import java.util.Map;
 
 public class ExpressionParser {

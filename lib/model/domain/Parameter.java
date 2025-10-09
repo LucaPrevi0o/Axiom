@@ -1,4 +1,4 @@
-package lib.model;
+package lib.model.domain;
 
 /**
  * Represents a parameter with a range that can be controlled by a slider

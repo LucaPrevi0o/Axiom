@@ -2,8 +2,8 @@ package lib.rendering.pipeline;
 
 import lib.constants.GraphConstants;
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
-import lib.model.GraphBounds;
+import lib.core.evaluation.ExpressionEvaluator;
+import lib.model.domain.GraphBounds;
 import lib.util.ValidationUtils;
 import java.awt.*;
 import java.awt.geom.Path2D;

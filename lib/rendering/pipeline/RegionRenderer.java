@@ -1,8 +1,8 @@
 package lib.rendering.pipeline;
 
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
-import lib.model.GraphBounds;
+import lib.core.evaluation.ExpressionEvaluator;
+import lib.model.domain.GraphBounds;
 import lib.rendering.IntersectionFinder;
 import lib.util.ValidationUtils;
 import java.awt.*;

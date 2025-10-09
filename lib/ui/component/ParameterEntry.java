@@ -1,7 +1,7 @@
 package lib.ui.component;
 
 import lib.constants.UIConstants;
-import lib.model.Parameter;
+import lib.model.domain.Parameter;
 import lib.rendering.ExpressionFormatter;
 import lib.util.FormattingUtils;
 import javax.swing.*;

@@ -1,7 +1,6 @@
-package lib.model;
+package lib.model.function.definition;
 
-import java.awt.Color;
-import java.awt.geom.Point2D;
+import lib.model.function.base.BaseFunction;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,9 +10,10 @@ import java.util.List;
  * - Explicit: a={1,2,3,4} - discrete list of specific values
  * - Range: b={1:10} - all integer values from 1 to 10 inclusive
  * 
- * Renders as discrete points at y=0 on the graph.
+ * Sets are NOT plottable - they serve as value containers that can be
+ * referenced by other functions (e.g., parametric points like P=(0,Q)).
  */
-public class SetFunction extends Function {
+public class SetFunction extends BaseFunction {
     
     private final List<Double> values;
     
@@ -21,10 +21,9 @@ public class SetFunction extends Function {
      * Create a set function from a list of values
      * @param name Set name (e.g., "a", "b")
      * @param values List of values in the set
-     * @param color Display color
      */
-    public SetFunction(String name, List<Double> values, Color color) {
-        super(name, color);
+    public SetFunction(String name, List<Double> values) {
+        super(name);
         this.values = new ArrayList<>(values);
     }
     
@@ -32,14 +31,13 @@ public class SetFunction extends Function {
      * Create a set function from an explicit list of values
      * @param name Set name
      * @param explicitValues Array of explicit values (e.g., {1,2,3,4})
-     * @param color Display color
      */
-    public static SetFunction fromExplicitValues(String name, double[] explicitValues, Color color) {
+    public static SetFunction fromExplicitValues(String name, double[] explicitValues) {
         List<Double> values = new ArrayList<>();
         for (double value : explicitValues) {
             values.add(value);
         }
-        return new SetFunction(name, values, color);
+        return new SetFunction(name, values);
     }
     
     /**
@@ -47,16 +45,15 @@ public class SetFunction extends Function {
      * @param name Set name
      * @param minValue Minimum value (inclusive)
      * @param maxValue Maximum value (inclusive)
-     * @param color Display color
      */
-    public static SetFunction fromRange(String name, int minValue, int maxValue, Color color) {
+    public static SetFunction fromRange(String name, int minValue, int maxValue) {
         List<Double> values = new ArrayList<>();
         int start = Math.min(minValue, maxValue);
         int end = Math.max(minValue, maxValue);
         for (int i = start; i <= end; i++) {
             values.add((double) i);
         }
-        return new SetFunction(name, values, color);
+        return new SetFunction(name, values);
     }
     
     /**
@@ -78,14 +75,6 @@ public class SetFunction extends Function {
      */
     public int size() {
         return values.size();
-    }
-    
-    @Override
-    public List<Point2D.Double> computePoints(GraphBounds bounds, int screenWidth, int screenHeight) {
-        // Sets are value containers, not visual elements
-        // They don't render any points themselves
-        // Use them in parametric points like P=(0,Q) to create point lists
-        return new ArrayList<>();
     }
     
     @Override
@@ -115,11 +104,6 @@ public class SetFunction extends Function {
         }
         sb.append("}");
         return sb.toString();
-    }
-    
-    @Override
-    public boolean isContinuous() {
-        return false; // Sets are discrete points
     }
     
     /**

@@ -2,13 +2,13 @@ package lib.ui.panel;
 
 import lib.constants.GraphConstants;
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
-import lib.model.Function;
-import lib.model.GraphBounds;
-import lib.model.Parameter;
-import lib.model.ParametricPointFunction;
-import lib.model.SetFunction;
-import lib.model.ViewportManager;
+import lib.core.evaluation.ExpressionEvaluator;
+import lib.model.function.base.PlottableFunction;
+import lib.model.domain.GraphBounds;
+import lib.model.domain.Parameter;
+import lib.model.function.geometric.PointFunction;
+import lib.model.function.definition.SetFunction;
+import lib.model.domain.ViewportManager;
 import lib.rendering.GraphRenderer;
 import lib.rendering.IntersectionFinder;
 import javax.swing.*;
@@ -27,7 +27,7 @@ public class GraphPanel extends JPanel {
         void onParameterUpdated(String parameterName, double newValue);
     }
 
-    private List<Function> functions;
+    private List<PlottableFunction> functions;
     private ExpressionEvaluator evaluator;
     private java.util.Map<String, String> userFunctions = new java.util.HashMap<>();
     private java.util.Map<String, Double> parameters = new java.util.HashMap<>();
@@ -47,7 +47,7 @@ public class GraphPanel extends JPanel {
     private int previousHeight = 0;
     
     // Point dragging state
-    private ParametricPointFunction draggedPoint = null;
+    private PointFunction draggedPoint = null;
     private String draggedParameterX = null;
     private String draggedParameterY = null;
     private Parameter draggedParamObjX = null;
@@ -117,7 +117,7 @@ public class GraphPanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     // Check if clicking on a draggable point
-                    ParametricPointFunction clickedPoint = findDraggablePointAt(e.getX(), e.getY());
+                    PointFunction clickedPoint = findDraggablePointAt(e.getX(), e.getY());
                     
                     if (clickedPoint != null) {
                         // Start dragging the point
@@ -147,7 +147,7 @@ public class GraphPanel extends JPanel {
             @Override
             public void mouseMoved(MouseEvent e) {
                 // Update cursor when hovering over draggable points
-                ParametricPointFunction hoverPoint = findDraggablePointAt(e.getX(), e.getY());
+                PointFunction hoverPoint = findDraggablePointAt(e.getX(), e.getY());
                 if (hoverPoint != null) {
                     setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 } else {
@@ -186,17 +186,17 @@ public class GraphPanel extends JPanel {
     }
     
     /**
-     * Set the functions to be graphed
-     * @param functions The list of functions
+     * Set the list of functions to render and the list of sets
+     * @param functions The list of plottable functions
+     * @param sets The list of set functions (for parametric points to reference)
      */
-    public void setFunctions(List<Function> functions) {
+    public void setFunctions(List<PlottableFunction> functions, List<SetFunction> sets) {
         this.functions = functions;
         
         // Build a map of sets for parametric points to reference
         java.util.Map<String, SetFunction> setMap = new java.util.HashMap<>();
-        for (Function function : functions) {
-            if (function instanceof SetFunction) {
-                SetFunction setFunc = (SetFunction) function;
+        if (sets != null) {
+            for (SetFunction setFunc : sets) {
                 String setName = setFunc.getName();
                 if (setName != null) {
                     setMap.put(setName, setFunc);
@@ -205,13 +205,23 @@ public class GraphPanel extends JPanel {
         }
         
         // Pass sets to all parametric point functions
-        for (Function function : functions) {
-            if (function instanceof ParametricPointFunction) {
-                ((ParametricPointFunction) function).setAvailableSets(setMap);
+        for (PlottableFunction function : functions) {
+            if (function instanceof PointFunction) {
+                PointFunction pf = (PointFunction) function;
+                if (pf.isParametric()) {
+                    pf.setAvailableSets(setMap);
+                }
             }
             // Invalidate caches when functions change
             function.invalidateCache();
         }
+    }
+    
+    /**
+     * Legacy method for compatibility
+     */
+    public void setFunctions(List<PlottableFunction> functions) {
+        setFunctions(functions, null);
     }
 
     public void setUserFunctions(java.util.Map<String, String> userFunctions) {
@@ -275,17 +285,17 @@ public class GraphPanel extends JPanel {
      * Find a draggable point at the given screen coordinates
      * @param screenX Screen X coordinate
      * @param screenY Screen Y coordinate
-     * @return ParametricPointFunction if found, null otherwise
+     * @return PointFunction if found, null otherwise
      */
-    private ParametricPointFunction findDraggablePointAt(int screenX, int screenY) {
+    private PointFunction findDraggablePointAt(int screenX, int screenY) {
         final int CLICK_THRESHOLD = RenderingConstants.INTERSECTION_POINT_RADIUS + 3;
         
-        for (Function function : functions) {
-            if (function instanceof ParametricPointFunction && function.isEnabled()) {
-                ParametricPointFunction pointFunc = (ParametricPointFunction) function;
+        for (PlottableFunction function : functions) {
+            if (function instanceof PointFunction && function.isEnabled()) {
+                PointFunction pointFunc = (PointFunction) function;
                 
-                // Only draggable if it uses parameters
-                if (!pointFunc.isDraggable()) {
+                // Only draggable if it uses parameters and is parametric
+                if (!pointFunc.isParametric() || !pointFunc.isDraggable()) {
                     continue;
                 }
                 
@@ -319,7 +329,7 @@ public class GraphPanel extends JPanel {
     /**
      * Start dragging a point
      */
-    private void startDraggingPoint(ParametricPointFunction point) {
+    private void startDraggingPoint(PointFunction point) {
         draggedPoint = point;
         isDraggingPoint = true;
         

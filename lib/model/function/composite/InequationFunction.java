@@ -1,7 +1,9 @@
-package lib.model;
+package lib.model.function.composite;
 
+import lib.model.function.base.PlottableFunction;
+import lib.model.domain.GraphBounds;
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
+import lib.core.evaluation.ExpressionEvaluator;
 import lib.util.ValidationUtils;
 import java.awt.Color;
 import java.awt.geom.Point2D;
@@ -9,10 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A function representing a region defined by an inequality.
+ * A function representing an inequation (inequality) region.
  * For syntax like (f(x) >= g(x)), this computes the boundary and can be filled.
+ * Renamed from RegionFunction for better semantic clarity.
  */
-public class RegionFunction extends Function {
+public class InequationFunction extends PlottableFunction {
     
     private final String leftExpression;
     private final String rightExpression;
@@ -20,20 +23,20 @@ public class RegionFunction extends Function {
     private final ExpressionEvaluator evaluator;
     
     /**
-     * Create a region function
+     * Create an inequation function
      * @param leftExpression Left side of inequality
      * @param operator Comparison operator (">=", "<=", ">", "<")
      * @param rightExpression Right side of inequality
      * @param color Display color
      * @param evaluator Expression evaluator to use
      */
-    public RegionFunction(String leftExpression, String operator, String rightExpression,
-                         Color color, ExpressionEvaluator evaluator) {
+    public InequationFunction(String leftExpression, String operator, String rightExpression,
+                             Color color, ExpressionEvaluator evaluator) {
         this(null, leftExpression, operator, rightExpression, color, evaluator);
     }
     
     /**
-     * Create a named region function
+     * Create a named inequation function
      * @param name Function name
      * @param leftExpression Left side of inequality
      * @param operator Comparison operator
@@ -41,8 +44,8 @@ public class RegionFunction extends Function {
      * @param color Display color
      * @param evaluator Expression evaluator to use
      */
-    public RegionFunction(String name, String leftExpression, String operator, 
-                         String rightExpression, Color color, ExpressionEvaluator evaluator) {
+    public InequationFunction(String name, String leftExpression, String operator, 
+                             String rightExpression, Color color, ExpressionEvaluator evaluator) {
         super(name, color);
         this.leftExpression = leftExpression;
         this.operator = operator;
@@ -155,10 +158,5 @@ public class RegionFunction extends Function {
     @Override
     public boolean isContinuous() {
         return true; // Boundary is continuous
-    }
-    
-    @Override
-    public boolean isRegion() {
-        return true; // This is a region that should be filled
     }
 }

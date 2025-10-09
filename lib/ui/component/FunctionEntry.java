@@ -1,7 +1,7 @@
 package lib.ui.component;
 
 import lib.constants.UIConstants;
-import lib.core.FunctionParser;
+import lib.core.parser.FunctionParser;
 import lib.rendering.ExpressionFormatter;
 import lib.ui.panel.FunctionPanel;
 import javax.swing.*;
@@ -28,6 +28,7 @@ public class FunctionEntry extends JPanel {
     private Color functionColor;
     private FunctionPanel parent;
     private boolean showVisualControls;
+    private boolean wasSet; // Track if the original expression was a set
     
     // View modes
     private static final String VIEW_MODE = "view";
@@ -44,6 +45,7 @@ public class FunctionEntry extends JPanel {
         this.functionColor = color;
         this.parent = parent;
         this.showVisualControls = showVisualControls;
+        this.wasSet = FunctionParser.isSet(expression); // Track initial type
         
         initComponents(expression);
         layoutComponents();
@@ -184,6 +186,14 @@ public class FunctionEntry extends JPanel {
         // Check if this is now a parameter - if so, notify parent to convert
         if (FunctionParser.isParameter(newExpr)) {
             parent.convertToParameter(this, newExpr);
+            return;
+        }
+        
+        // Check if the expression type changed between set and non-set
+        boolean isNowSet = FunctionParser.isSet(newExpr);
+        if (isNowSet != wasSet) {
+            // Type changed - need to recreate entry with correct visual controls
+            parent.recreateFunctionEntry(this, newExpr);
             return;
         }
         

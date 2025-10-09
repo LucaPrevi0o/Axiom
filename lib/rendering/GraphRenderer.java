@@ -1,8 +1,10 @@
 package lib.rendering;
 
+import lib.model.function.base.PlottableFunction;
+import lib.model.function.composite.InequationFunction;
+import lib.model.domain.GraphBounds;
 import lib.constants.RenderingConstants;
-import lib.core.ExpressionEvaluator;
-import lib.model.*;
+import lib.core.evaluation.ExpressionEvaluator;
 import lib.rendering.pipeline.*;
 import lib.util.ValidationUtils;
 import java.awt.*;
@@ -34,7 +36,7 @@ public class GraphRenderer {
     /**
      * Main render method - coordinates all rendering using polymorphism
      */
-    public void render(Graphics2D g2, List<Function> functions, int width, int height) {
+    public void render(Graphics2D g2, List<PlottableFunction> functions, int width, int height) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         // Draw grid and axes
@@ -42,7 +44,7 @@ public class GraphRenderer {
         axisRenderer.drawAxes(g2, bounds, width, height);
         
         // Draw all functions using polymorphism
-        for (Function function : functions) {
+        for (PlottableFunction function : functions) {
             if (!function.isEnabled()) continue;
             
             renderFunction(g2, function, width, height);
@@ -53,7 +55,7 @@ public class GraphRenderer {
      * Render a single function using polymorphism.
      * The function itself knows how to compute its points.
      */
-    private void renderFunction(Graphics2D g2, Function function, int width, int height) {
+    private void renderFunction(Graphics2D g2, PlottableFunction function, int width, int height) {
         // Get points from the function (uses caching internally)
         List<Point2D.Double> points = function.getPoints(bounds, width, height);
         
@@ -61,9 +63,9 @@ public class GraphRenderer {
         
         g2.setColor(function.getColor());
         
-        // Handle region functions specially (need filling)
-        if (function.isRegion() && function instanceof RegionFunction) {
-            renderRegion(g2, (RegionFunction) function, points, width, height);
+        // Handle inequation functions specially (need filling)
+        if (function instanceof InequationFunction) {
+            renderRegion(g2, (InequationFunction) function, points, width, height);
             return;
         }
         
@@ -113,9 +115,9 @@ public class GraphRenderer {
     }
     
     /**
-     * Render a region function with filling
+     * Render an inequation function with filling
      */
-    private void renderRegion(Graphics2D g2, RegionFunction function,
+    private void renderRegion(Graphics2D g2, InequationFunction function,
                              List<Point2D.Double> points, int width, int height) {
         // Draw the boundary curves
         g2.setColor(function.getColor());

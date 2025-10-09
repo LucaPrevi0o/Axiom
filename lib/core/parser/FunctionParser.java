@@ -1,7 +1,9 @@
-package lib.core;
+package lib.core.parser;
 
-import lib.model.Function;
-import lib.model.Parameter;
+import lib.model.function.base.PlottableFunction;
+import lib.model.function.definition.SetFunction;
+import lib.model.domain.Parameter;
+import lib.core.factory.FunctionFactory;
 import lib.ui.component.FunctionEntry;
 import java.awt.Color;
 import java.util.ArrayList;
@@ -51,12 +53,15 @@ public class FunctionParser {
      */
     public static class ParseResult {
         private final Map<String, String> namedFunctions;
-        private final List<Function> functions;
+        private final List<PlottableFunction> functions;
+        private final List<SetFunction> sets;
         private final List<Parameter> parameters;
         
-        public ParseResult(Map<String, String> namedFunctions, List<Function> functions, List<Parameter> parameters) {
+        public ParseResult(Map<String, String> namedFunctions, List<PlottableFunction> functions, 
+                          List<SetFunction> sets, List<Parameter> parameters) {
             this.namedFunctions = namedFunctions;
             this.functions = functions;
+            this.sets = sets;
             this.parameters = parameters;
         }
         
@@ -64,8 +69,12 @@ public class FunctionParser {
             return namedFunctions;
         }
         
-        public List<Function> getFunctions() {
+        public List<PlottableFunction> getFunctions() {
             return functions;
+        }
+        
+        public List<SetFunction> getSets() {
+            return sets;
         }
         
         public List<Parameter> getParameters() {
@@ -81,13 +90,18 @@ public class FunctionParser {
      */
     public static ParseResult parseEntries(List<FunctionEntry> entries, FunctionFactory factory) {
         Map<String, String> namedFunctions = new HashMap<>();
-        List<Function> functions = new ArrayList<>();
+        List<PlottableFunction> functions = new ArrayList<>();
+        List<SetFunction> sets = new ArrayList<>();
         List<Parameter> parameters = new ArrayList<>();
         
         for (FunctionEntry entry : entries) {
             if (!entry.isEnabled()) continue;
             
             String expr = entry.getExpression().trim();
+            
+            // Skip empty expressions
+            if (expr.isEmpty()) continue;
+            
             Color color = entry.getColor();
             
             if (isParameter(expr)) {
@@ -97,9 +111,9 @@ public class FunctionParser {
                 }
             } else if (isSet(expr)) {
                 // Handle set definitions (explicit or range)
-                Function setFunc = factory.createSetFunction(expr, color);
+                SetFunction setFunc = factory.createSetFunction(expr);
                 if (setFunc != null) {
-                    functions.add(setFunc);
+                    sets.add(setFunc);
                 }
             } else if (isPoint(expr)) {
                 parsePoint(expr, color, functions, factory);
@@ -111,7 +125,7 @@ public class FunctionParser {
             }
         }
         
-        return new ParseResult(namedFunctions, functions, parameters);
+        return new ParseResult(namedFunctions, functions, sets, parameters);
     }
     
     /**
@@ -193,7 +207,7 @@ public class FunctionParser {
      */
     private static void parseNamedFunction(String expr, Color color, 
                                            Map<String, String> namedFunctions,
-                                           List<Function> functions,
+                                           List<PlottableFunction> functions,
                                            FunctionFactory factory) {
         int eqIdx = expr.indexOf('=');
         if (eqIdx <= 0) return;
@@ -205,7 +219,7 @@ public class FunctionParser {
         namedFunctions.put(name.toLowerCase(), rhs);
         
         // Create the function using factory with the name
-        Function function = factory.createFunction(name, rhs, color);
+        PlottableFunction function = factory.createFunction(name, rhs, color);
         functions.add(function);
     }
     
@@ -213,7 +227,7 @@ public class FunctionParser {
      * Parse a point definition (e.g., P=(1,2) or P=(a,0) or P=(3,f(3)))
      */
     private static void parsePoint(String expr, Color color,
-                                   List<Function> functions,
+                                   List<PlottableFunction> functions,
                                    FunctionFactory factory) {
         java.util.regex.Matcher matcher = POINT_PATTERN.matcher(expr);
         if (matcher.matches()) {
@@ -231,7 +245,7 @@ public class FunctionParser {
             
             // Create a parametric point function using factory
             // This handles literal numbers, parameters, and function calls
-            Function function = factory.createParametricPointFunction(name, xStr, yStr, color);
+            PlottableFunction function = factory.createParametricPointFunction(name, xStr, yStr, color);
             functions.add(function);
         }
     }

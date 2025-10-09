@@ -1,8 +1,8 @@
 package lib.ui.panel;
 
-import lib.core.FunctionParser;
-import lib.core.FunctionFactory;
-import lib.model.Parameter;
+import lib.core.parser.FunctionParser;
+import lib.core.factory.FunctionFactory;
+import lib.model.domain.Parameter;
 import lib.ui.component.FunctionColorManager;
 import lib.ui.component.FunctionEntry;
 import lib.ui.component.ParameterEntry;
@@ -156,6 +156,15 @@ public class FunctionPanel extends JPanel {
      * Remove a function
      */
     public void removeFunction(FunctionEntry entry) {
+        removeFunctionInternal(entry);
+        updateGraph();
+    }
+    
+    /**
+     * Remove a function without updating the graph
+     * Used internally when we know updateGraph will be called later
+     */
+    private void removeFunctionInternal(FunctionEntry entry) {
         functionEntries.remove(entry);
         
         // Find and remove the entry from the panel
@@ -173,7 +182,6 @@ public class FunctionPanel extends JPanel {
         
         revalidate();
         repaint();
-        updateGraph();
     }
     
     /**
@@ -194,6 +202,31 @@ public class FunctionPanel extends JPanel {
         
         // Add the parameter entry
         addParameterEntry(param, color);
+    }
+    
+    /**
+     * Recreate a FunctionEntry with correct visual controls based on expression type
+     * Used when an expression changes between set and non-set types
+     */
+    public void recreateFunctionEntry(FunctionEntry oldEntry, String newExpression) {
+        // Get the color and enabled state from the old entry
+        Color color = oldEntry.getColor();
+        
+        // Remove the old function entry (without calling updateGraph)
+        removeFunctionInternal(oldEntry);
+        
+        // Check if this is a set - sets should not show visual controls
+        boolean isSet = FunctionParser.isSet(newExpression.trim());
+        
+        // Create a new function entry with appropriate visual controls
+        FunctionEntry newEntry = new FunctionEntry(newExpression, color, this, !isSet);
+        functionEntries.add(newEntry);
+        entriesPanel.add(newEntry);
+        entriesPanel.add(Box.createVerticalStrut(5));
+        
+        revalidate();
+        repaint();
+        updateGraph(); // Update once with the new entry included
     }
     
     /**
@@ -263,7 +296,7 @@ public class FunctionPanel extends JPanel {
         // Parse function entries using factory (now has correct parameters)
         FunctionParser.ParseResult result = FunctionParser.parseEntries(functionEntries, factory);
         
-        graphPanel.setFunctions(result.getFunctions());
+        graphPanel.setFunctions(result.getFunctions(), result.getSets());
         graphPanel.repaint();
     }
     
