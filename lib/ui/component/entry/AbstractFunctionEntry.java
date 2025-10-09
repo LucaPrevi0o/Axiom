@@ -141,6 +141,9 @@ public abstract class AbstractFunctionEntry extends JPanel {
             CardLayout cl = (CardLayout) centerPanel.getLayout();
             cl.show(centerPanel, VIEW_MODE);
             parent.updateGraph();
+        } else {
+            // Entry needs to be recreated - ask parent to replace it
+            parent.recreateFunctionEntry(this, newExpr);
         }
     }
     

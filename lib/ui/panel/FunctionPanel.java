@@ -124,6 +124,48 @@ public class FunctionPanel extends JPanel {
     }
     
     /**
+     * Recreate a function entry with a new expression
+     * Used when editing changes the function type
+     */
+    public void recreateFunctionEntry(AbstractFunctionEntry oldEntry, String newExpression) {
+        // Find the position in the functionEntries list
+        int listPosition = functionEntries.indexOf(oldEntry);
+        if (listPosition == -1) return;
+        
+        // Find the position in the entriesPanel
+        Component[] components = entriesPanel.getComponents();
+        int panelPosition = -1;
+        for (int i = 0; i < components.length; i++) {
+            if (components[i] == oldEntry) {
+                panelPosition = i;
+                break;
+            }
+        }
+        
+        if (panelPosition == -1) return;
+        
+        // Remove the old entry from both list and panel
+        functionEntries.remove(listPosition);
+        entriesPanel.remove(panelPosition);
+        // Also remove the spacer if it exists
+        if (panelPosition < entriesPanel.getComponentCount()) {
+            entriesPanel.remove(panelPosition);
+        }
+        
+        // Create new entry with the factory
+        AbstractFunctionEntry newEntry = entryFactory.createEntry(newExpression);
+        if (newEntry != null) {
+            functionEntries.add(listPosition, newEntry);
+            entriesPanel.add(newEntry, panelPosition);
+            entriesPanel.add(Box.createVerticalStrut(5), panelPosition + 1);
+        }
+        
+        revalidate();
+        repaint();
+        updateGraph();
+    }
+    
+    /**
      * Remove an abstract function entry without updating the graph
      * Used internally when we know updateGraph will be called later
      */

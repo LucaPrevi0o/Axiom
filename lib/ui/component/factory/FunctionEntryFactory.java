@@ -39,8 +39,20 @@ public class FunctionEntryFactory {
             return createSetEntry(expression);
         }
         
+        // Check if it's a named function
+        String name = null;
+        String actualExpression = expression;
+        
+        if (FunctionParser.isNamedFunction(expression)) {
+            name = FunctionParser.extractName(expression);
+            actualExpression = FunctionParser.extractRHS(expression);
+            if (actualExpression == null) {
+                actualExpression = expression;  // Fallback if parsing fails
+            }
+        }
+        
         Color color = colorManager.getNextColor();
-        PlottableFunction function = functionFactory.createFunction(expression, color);
+        PlottableFunction function = functionFactory.createFunction(name, actualExpression, color);
         
         if (function != null) {
             return new PlottableFunctionEntry(function, parent);

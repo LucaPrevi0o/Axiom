@@ -24,30 +24,22 @@ public class PlottableFunctionEntry extends AbstractFunctionEntry {
      * @param parent Parent FunctionPanel
      */
     public PlottableFunctionEntry(PlottableFunction function, FunctionPanel parent) {
-        super(function.toString(), parent);
+        super(function.getDisplayString(), parent);
         this.function = function;
         
-        // Now that function is set, initialize and add visual controls
+        // Components will be initialized and added in layoutSpecificComponents
+        // which is called after super() completes
         initVisualControls();
+        
+        // Now add them to the already-created topPanel
         topPanel.add(colorIndicator, BorderLayout.WEST);
         topPanel.add(enableCheckbox, BorderLayout.EAST);
     }
     
     @Override
     protected void layoutSpecificComponents(JPanel topPanel) {
-        // Lazy initialization - create components if not already created
-        // AND if function is available (it won't be during super() constructor)
-        if (colorIndicator == null && function != null) {
-            initVisualControls();
-        }
-        
-        // Only add components if they were successfully initialized
-        if (colorIndicator != null) {
-            topPanel.add(colorIndicator);
-        }
-        if (enableCheckbox != null) {
-            topPanel.add(enableCheckbox);
-        }
+        // This is called during super() constructor when function is still null
+        // Components will be added after super() completes in the constructor
     }
     
     /**
