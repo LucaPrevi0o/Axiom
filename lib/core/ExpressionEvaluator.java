@@ -1,18 +1,37 @@
 package lib.core;
 import java.util.Map;
 
+/**
+ * Simple expression evaluator for mathematical functions.
+ * Supports basic arithmetic, math functions, user-defined functions, and parameters.
+ * 
+ * Note: This is a basic implementation. For production use, consider using a robust library.
+ */
 public class ExpressionEvaluator {
 
     private Map<String, String> userFunctions;
     private Map<String, Double> parameters;
 
+    /**
+     * Create an evaluator with optional user-defined functions and parameters
+     */
     public ExpressionEvaluator() { this(null, null); }
 
+    /**
+     * Create an evaluator with user-defined functions
+     * @param userFunctions Map of function names to their expressions (e.g., "f" -> "x^2")
+     */
     public ExpressionEvaluator(Map<String, String> userFunctions) { 
         this(userFunctions, null); 
     }
     
+    /**
+     * Create an evaluator with user-defined functions and parameters
+     * @param userFunctions Map of function names to their expressions (e.g., "f" -> "x^2")
+     * @param parameters Map of parameter names to their numeric values (e.g., "a" -> 3.0)
+     */
     public ExpressionEvaluator(Map<String, String> userFunctions, Map<String, Double> parameters) {
+        
         this.userFunctions = userFunctions;
         this.parameters = parameters;
     }
@@ -25,22 +44,24 @@ public class ExpressionEvaluator {
      * @throws Exception If the expression is invalid
      */
     public double evaluate(String expression, double x) throws Exception {
-    expression = expression.toLowerCase().trim();
-    
-    // Replace parameter names with their values
-    if (parameters != null) {
-        for (Map.Entry<String, Double> entry : parameters.entrySet()) {
-            String paramName = entry.getKey().toLowerCase();
-            String paramValue = String.valueOf(entry.getValue());
-            // Replace whole-word occurrences of parameter name
-            expression = expression.replaceAll("(?i)\\b" + paramName + "\\b", "(" + paramValue + ")");
+
+        expression = expression.toLowerCase().trim();
+        
+        // Replace parameter names with their values
+        if (parameters != null) {
+            for (Map.Entry<String, Double> entry : parameters.entrySet()) {
+
+                String paramName = entry.getKey().toLowerCase();
+                String paramValue = String.valueOf(entry.getValue());
+                // Replace whole-word occurrences of parameter name
+                expression = expression.replaceAll("(?i)\\b" + paramName + "\\b", "(" + paramValue + ")");
+            }
         }
-    }
-    
-    // Replace whole-word occurrences of x with a parenthesized numeric value so
-    // expressions like x^2 evaluate correctly when x is negative (e.g. (-2)^2).
-    String xVal = String.valueOf(x);
-    expression = expression.replaceAll("(?i)\\bx\\b", "(" + xVal + ")");
+        
+        // Replace whole-word occurrences of x with a parenthesized numeric value so
+        // expressions like x^2 evaluate correctly when x is negative (e.g. (-2)^2).
+        String xVal = String.valueOf(x);
+        expression = expression.replaceAll("(?i)\\bx\\b", "(" + xVal + ")");
         
         // Handle basic math functions
         expression = handleFunctions(expression);

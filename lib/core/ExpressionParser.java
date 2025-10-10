@@ -38,9 +38,7 @@ public class ExpressionParser {
     /**
      * Advance to the next character in the expression
      */
-    private void nextChar() {
-        ch = (++pos < str.length()) ? str.charAt(pos) : -1;
-    }
+    private void nextChar() { ch = (++pos < str.length()) ? str.charAt(pos) : -1; }
     
     /**
      * Eat the current character if it matches the expected character
@@ -48,8 +46,10 @@ public class ExpressionParser {
      * @return {@code true} if the character was eaten, {@code false} otherwise
      */
     private boolean eat(int charToEat) {
+
         while (ch == ' ') nextChar();
         if (ch == charToEat) {
+
             nextChar();
             return true;
         }
@@ -76,8 +76,10 @@ public class ExpressionParser {
      * @throws Exception If the expression is invalid
      */
     private double parseTerm() throws Exception {
+
         double x = parseFactor();
         while (true) {
+
             if (eat('*')) x *= parseFactor();
             else if (eat('/')) x /= parseFactor();
             else return x;
@@ -90,6 +92,7 @@ public class ExpressionParser {
      * @throws Exception If the expression is invalid
      */
     private double parseFactor() throws Exception {
+
         if (eat('+')) return parseFactor();
         if (eat('-')) return -parseFactor();
         
@@ -97,37 +100,35 @@ public class ExpressionParser {
         int startPos = this.pos;
         
         if (eat('(')) {
+
             x = parseExpression();
             eat(')');
         } else if ((ch >= '0' && ch <= '9') || ch == '.') {
+
             while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
             x = Double.parseDouble(str.substring(startPos, this.pos));
         } else if (ch >= 'a' && ch <= 'z') {
+
             while (ch >= 'a' && ch <= 'z') nextChar();
             String func = str.substring(startPos, this.pos);
             // Support constants like pi and e
-            if (func.equals("pi")) {
-                x = Math.PI;
-            } else if (func.equals("e")) {
-                x = Math.E;
-            } else {
+            if (func.equals("pi")) x = Math.PI;
+            else if (func.equals("e")) x = Math.E;
+            else {
+
                 // function application: func followed by factor (e.g., sin x or sin(x))
                 x = parseFactor();
                 // If this is a user-defined function, evaluate its expression with the provided argument
                 if (userFunctions != null && userFunctions.containsKey(func)) {
+
                     String funcExpr = userFunctions.get(func);
                     // Evaluate the function expression using the same userFunctions map and parameters
                     x = new ExpressionEvaluator(userFunctions, parameters).evaluate(funcExpr, x);
-                } else {
-                    x = applyFunction(func, x);
-                }
+                } else x = applyFunction(func, x);
             }
-        } else {
-            throw new Exception("Unexpected: " + (char) ch);
-        }
-        
+        } else throw new Exception("Unexpected: " + (char) ch);
+
         if (eat('^')) x = Math.pow(x, parseFactor());
-        
         return x;
     }
     
@@ -139,7 +140,9 @@ public class ExpressionParser {
      * @throws Exception If the function is unknown
      */
     private double applyFunction(String func, double x) throws Exception {
+
         switch (func) {
+
             case "sqrt": return Math.sqrt(x);
             case "sin": return Math.sin(x);
             case "cos": return Math.cos(x);
