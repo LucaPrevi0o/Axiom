@@ -87,10 +87,9 @@ public class ExpressionParser {
             
             // Check for parameterized functions like root{N} or log{N}
             String paramStr = tokenizer.readParameter();
-            double param = (paramStr != null) ? Double.parseDouble(paramStr) : -1;
             
             x = parseFactor();
-            x = applyFunction(func, x, param);
+            x = paramStr != null ? applyFunction(func, x, Double.parseDouble(paramStr)) : applyFunction(func, x);
         } else throw new Exception("Unexpected: " + (char) tokenizer.getCurrentChar());
 
         if (tokenizer.eat('^'))  x = Math.pow(x, parseFactor());
@@ -101,24 +100,72 @@ public class ExpressionParser {
      * Apply a mathematical function to a value
      * @param func The function name as a string
      * @param x The value to apply the function to
-     * @param param Optional parameter for parameterized functions (e.g., base for log, root index)
+     * @return The result of the function application ({@code double})
+     * @throws Exception If the function is unknown
+     */
+    private double applyFunction(String func, double x) throws Exception {
+
+        switch (func) {
+
+            // Basic functions
+            case "sin": return Math.sin(x);
+            case "cos": return Math.cos(x);
+            case "tan": return Math.tan(x);
+            case "cot": return 1.0 / Math.tan(x);
+
+            // Reciprocal functions
+            case "sec": return 1.0 / Math.cos(x);
+            case "csc": return 1.0 / Math.sin(x);
+
+            // Inverse functions
+            case "asin": return Math.asin(x);
+            case "acos": return Math.acos(x);
+            case "atan": return Math.atan(x);
+            case "acot": return Math.atan(1.0 / x);
+
+            // Inverse reciprocal functions
+            case "asec": return Math.acos(1.0 / x);
+            case "acsc": return Math.asin(1.0 / x);
+
+            // Hyperbolic functions
+            case "sinh": return Math.sinh(x);
+            case "cosh": return Math.cosh(x);
+            case "tanh": return Math.tanh(x);
+            case "coth": return 1.0 / Math.tanh(x);
+
+            // Hyperbolic reciprocal functions
+            case "sech": return 1.0 / Math.cosh(x);
+            case "csch": return 1.0 / Math.sinh(x);
+
+            // Inverse hyperbolic functions
+            case "asinh": return Math.log(x + Math.sqrt(x * x + 1));
+            case "acosh": return Math.log(x + Math.sqrt(x * x - 1));
+            case "atanh": return 0.5 * Math.log((1 + x) / (1 - x));
+            case "acoth": return 0.5 * Math.log((x + 1) / (x - 1));
+
+            // Inverse hyperbolic reciprocal functions
+            case "asech": return Math.log(Math.sqrt(1 / (x * x) - 1) + 1 / x);
+            case "acsch": return Math.log(1 / x + Math.sqrt(1 / (x * x) + 1));
+
+            case "ln": return Math.log(x);
+            case "abs": return Math.abs(x);
+            default: throw new Exception("Unknown function: " + func);
+        }
+    }
+
+    /**
+     * Apply a parameterized mathematical function to a value
+     * @param func The function name as a string
+     * @param x The value to apply the function to
+     * @param param The parameter for the function (e.g., base for log, root index)
      * @return The result of the function application ({@code double})
      * @throws Exception If the function is unknown
      */
     private double applyFunction(String func, double x, double param) throws Exception {
 
         switch (func) {
-            case "sin": return Math.sin(x);
-            case "cos": return Math.cos(x);
-            case "tan": return Math.tan(x);
-            case "log": 
-                if (param > 0) return Math.log(x) / Math.log(param);
-                return Math.log10(x);
-            case "ln": return Math.log(x);
-            case "abs": return Math.abs(x);
-            case "root":
-                if (param > 0) return Math.pow(x, 1.0 / param);
-                else throw new Exception("root requires a parameter: root{n}(x)");
+            case "log": return Math.log(x) / Math.log(param);
+            case "root": return Math.pow(x, 1.0 / param);
             default: throw new Exception("Unknown function: " + func);
         }
     }
