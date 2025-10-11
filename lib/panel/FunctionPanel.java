@@ -7,6 +7,8 @@ import lib.panel.plot.PlotPanel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Side panel containing the function list and plot controls
@@ -87,13 +89,23 @@ public class FunctionPanel extends JPanel {
      */
     private void addFunction() {
 
-        // Get and validate input
-        String expression = inputField.getText().trim();
+        // Validate input
+        String input = inputField.getText().trim();
+        if (!validateInput(input)) return;
         
+        // Parse function definition
+        String[] parsed = parseFunctionDefinition(input);
+        String name = parsed[0];
+        String expression = parsed[1];
+        
+        // Validate expression
         if (!validateInput(expression)) return;
         
-        // Create and add function
-        Function function = createFunction(expression);
+        // Create Function object
+        Function function = (name != null) 
+            ? createFunction(expression, name) 
+            : createFunction(expression);
+        
         plotPanel.addFunction(function);
         
         // Create and add UI entry
@@ -265,5 +277,21 @@ public class FunctionPanel extends JPanel {
         
         int index = functionItems.size() % colors.length;
         return colors[index];
+    }
+    
+    /**
+     * Parse function definition to extract name and expression
+     * Supports formats: "f(x)=x^2" or just "x^2"
+     * @param input The input string
+     * @return Object array [name, expression] or [null, expression]
+     */
+    private String[] parseFunctionDefinition(String input) {
+
+        // Regex to capture: name(x)=expression
+        Pattern pattern = Pattern.compile("^([a-zA-Z]\\w*)\\s*\\(\\s*x\\s*\\)\\s*=\\s*(.+)$");
+        Matcher matcher = pattern.matcher(input.trim());
+        
+        if (matcher.matches()) return new String[] { matcher.group(1), matcher.group(2) };
+        return new String[] { null, input.trim() };
     }
 }
