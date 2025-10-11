@@ -1,13 +1,22 @@
+package lib.panel;
 // GraphPanel.java
 import javax.swing.*;
+
+import lib.Function;
+import lib.expression.ExpressionEvaluator;
+
 import java.awt.*;
 import java.awt.geom.*;
+import java.util.ArrayList;
+import java.util.List;
 
-public class GraphPanel extends JPanel {
+/**
+ * Panel to graph mathematical functions
+ */
+public class PlotPanel extends JPanel {
 
-    private String functionExpression = "x^2";
-    private ExpressionEvaluator evaluator;
-    
+    private List<Function> functions = new ArrayList<>();
+
     // Graph bounds
     private double minX = -10;
     private double maxX = 10;
@@ -17,50 +26,77 @@ public class GraphPanel extends JPanel {
     /**
      * Constructor to set up the panel
      */
-    public GraphPanel() {
-
+    public PlotPanel() {
         setBackground(Color.WHITE);
-        evaluator = new ExpressionEvaluator();
+    }
+
+    /**
+     * Add a function to be graphed
+     * 
+     * @param function The Function object to add
+     */
+    public void addFunction(Function function) {
+        this.functions.add(function);
     }
     
     /**
-     * Set the function expression to be graphed
-     * @param expression The function expression as a string
+     * Remove a function from the graph
+     * 
+     * @param function The Function object to remove
      */
-    public void setFunction(String expression) { this.functionExpression = expression; }
+    public void removeFunction(Function function) {
+        this.functions.remove(function);
+    }
     
     /**
+     * Clear all functions from the graph
+     */
+    public void clearFunctions() {
+        this.functions.clear();
+    }
+    
+    /**
+     * Get all functions
+     * 
+     * @return List of all Function objects
+     */
+    public List<Function> getFunctions() {
+        return functions;
+    }
+
+    /**
      * Override paintComponent to draw the graphics
+     * 
      * @param g The {@link Graphics} object
      */
-    @Override
     protected void paintComponent(Graphics g) {
 
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
+
         drawGrid(g2);
         drawAxes(g2);
-        drawFunction(g2);
+        drawFunctions(g2);
     }
 
     /**
      * Draw the grid lines on the graph
+     * 
      * @param g2 The {@link Graphics2D} object
      */
     private void drawGrid(Graphics2D g2) {
 
         g2.setColor(new Color(220, 220, 220));
         g2.setStroke(new BasicStroke(1));
-        
+
         // Vertical grid lines
         for (int i = (int) minX; i <= maxX; i++) {
 
             int x = xToScreen(i);
             g2.drawLine(x, 0, x, getHeight());
         }
-        
+
         // Horizontal grid lines
         for (int i = (int) minY; i <= maxY; i++) {
 
@@ -68,24 +104,25 @@ public class GraphPanel extends JPanel {
             g2.drawLine(0, y, getWidth(), y);
         }
     }
-    
+
     /**
      * Draw the X and Y axes on the graph
+     * 
      * @param g2 The {@link Graphics2D} object
      */
     private void drawAxes(Graphics2D g2) {
 
         g2.setColor(Color.BLACK);
         g2.setStroke(new BasicStroke(2));
-        
+
         // X-axis
         int yAxis = yToScreen(0);
         g2.drawLine(0, yAxis, getWidth(), yAxis);
-        
+
         // Y-axis
         int xAxis = xToScreen(0);
         g2.drawLine(xAxis, 0, xAxis, getHeight());
-        
+
         // Draw tick marks and labels
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
         for (int i = (int) minX; i <= maxX; i++) {
@@ -97,7 +134,7 @@ public class GraphPanel extends JPanel {
                 g2.drawString(String.valueOf(i), x - 5, yAxis + 20);
             }
         }
-        
+
         for (int i = (int) minY; i <= maxY; i++) {
 
             if (i != 0) {
@@ -108,27 +145,46 @@ public class GraphPanel extends JPanel {
             }
         }
     }
-    
+
     /**
      * Draw the function on the graph
+     * 
      * @param g2 The {@link Graphics2D} object
      */
-    private void drawFunction(Graphics2D g2) {
+    private void drawFunctions(Graphics2D g2) {
 
-        g2.setColor(Color.BLUE);
         g2.setStroke(new BasicStroke(2));
+
+        for (Function function : functions) {
+
+            if (!function.isVisible()) continue;
+            
+            g2.setColor(function.getColor());
+            Path2D path = computeFunctionPath(function);
+            g2.draw(path);
+        }
+    }
+    
+    /**
+     * Compute the path for a function by evaluating it at screen points
+     * 
+     * @param function The Function to compute points for
+     * @return A Path2D representing the function curve
+     */
+    private Path2D computeFunctionPath(Function function) {
         
         Path2D path = new Path2D.Double();
         boolean firstPoint = true;
-        
+
         // Sample points across the screen
         for (int screenX = 0; screenX < getWidth(); screenX++) {
+
             double x = screenToX(screenX);
-            
             try {
 
-                double y = evaluator.evaluate(functionExpression, x);
-                
+                // Evaluate the function using ExpressionEvaluator
+                double y = ExpressionEvaluator.evaluate(function.getExpression(), x);
+
                 // Check if y is within bounds
                 if (!Double.isNaN(y) && !Double.isInfinite(y)) {
 
@@ -137,20 +193,34 @@ public class GraphPanel extends JPanel {
 
                         path.moveTo(screenX, screenY);
                         firstPoint = false;
-                    } else  path.lineTo(screenX, screenY);
+                    } else {
+                        path.lineTo(screenX, screenY);
+                    }
+                } else {
+                    firstPoint = true;
                 }
-            } catch (Exception e) { firstPoint = true; }
+            } catch (Exception e) {
+                firstPoint = true;
+            }
         }
         
-        g2.draw(path);
+        return path;
     }
-    
+
     // Coordinate conversion methods
-    private int xToScreen(double x) { return (int) ((x - minX) / (maxX - minX) * getWidth()); }
+    private int xToScreen(double x) {
+        return (int) ((x - minX) / (maxX - minX) * getWidth());
+    }
 
-    private int yToScreen(double y) { return (int) ((maxY - y) / (maxY - minY) * getHeight()); }
+    private int yToScreen(double y) {
+        return (int) ((maxY - y) / (maxY - minY) * getHeight());
+    }
 
-    private double screenToX(int screenX) { return minX + (screenX * (maxX - minX) / getWidth()); }
+    private double screenToX(int screenX) {
+        return minX + (screenX * (maxX - minX) / getWidth());
+    }
 
-    private double screenToY(int screenY) { return maxY - (screenY * (maxY - minY) / getHeight()); }
+    private double screenToY(int screenY) {
+        return maxY - (screenY * (maxY - minY) / getHeight());
+    }
 }
