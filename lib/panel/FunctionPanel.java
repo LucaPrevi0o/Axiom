@@ -87,6 +87,7 @@ public class FunctionPanel extends JPanel {
      */
     private void addFunction() {
 
+        // Get and validate input
         String expression = inputField.getText().trim();
         
         if (!validateInput(expression)) return;
@@ -129,6 +130,17 @@ public class FunctionPanel extends JPanel {
 
         Color randomColor = generateRandomColor();
         return new Function(expression, randomColor);
+    }
+    
+    /**
+     * Create a new Function object with a random color
+     * @param expression The function expression
+     * @return The created Function
+     */
+    private Function createFunction(String expression, String name) {
+
+        Color randomColor = generateRandomColor();
+        return new Function(expression, randomColor, name);
     }
     
     /**

@@ -17,27 +17,42 @@ public class Function {
      * Constructor with expression only
      * @param expression The function expression as a string (e.g., "x^2", "sin(x)")
      */
-    public Function(String expression) { this(expression, Color.BLUE, true); }
+    public Function(String expression) { this(expression, Color.BLUE, true, null); }
+
+    /**
+     * Constructor with expression and color
+     * @param expression The function expression as a string
+     * @param color The color to use when plotting
+     */
+    public Function(String expression, Color color) { this(expression, color, true, null); }
     
     /**
      * Constructor with expression and color
      * @param expression The function expression as a string
      * @param color The color to use when plotting
      */
-    public Function(String expression, Color color) { this(expression, color, true); }
-    
+    public Function(String expression, Color color, String name) { this(expression, color, true, name); }
+
+    /**
+     * Constructor with expression, color, and visibility
+     * @param expression The function expression as a string
+     * @param color The color to use when plotting
+     * @param visible Whether the function should be displayed
+     */
+    public Function(String expression, Color color, boolean visible) { this(expression, color, visible, null); }
+
     /**
      * Full constructor
      * @param expression The function expression as a string
      * @param color The color to use when plotting
      * @param visible Whether the function should be displayed
      */
-    public Function(String expression, Color color, boolean visible) {
+    public Function(String expression, Color color, boolean visible, String name) {
 
         this.expression = expression;
         this.color = color;
         this.visible = visible;
-        this.name = "f";
+        this.name = name;
     }
     
     /**
@@ -50,11 +65,7 @@ public class Function {
      * Set the function expression
      * @param expression The new expression
      */
-    public void setExpression(String expression) {
-
-        this.expression = expression;
-        this.name = "f(x) = " + expression;
-    }
+    public void setExpression(String expression) { this.expression = expression; }
     
     /**
      * Get the function color

@@ -58,7 +58,7 @@ public class FunctionEntry extends JPanel {
         });
         
         // Expression label
-        expressionLabel = new JLabel("f(x) = " + function.getExpression());
+        expressionLabel = new JLabel((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
         expressionLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
         // Input field for editing expression
@@ -150,7 +150,7 @@ public class FunctionEntry extends JPanel {
      */
     public void updateExpression() {
 
-        expressionLabel.setText("f(x) = " + function.getExpression());
+        expressionLabel.setText((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
         inputField.setText(function.getExpression());
         revalidate();
         repaint();

@@ -15,6 +15,7 @@ public class ExpressionTokenizer {
      * @param str The expression string to tokenize
      */
     public void init(String str) {
+
         this.str = str;
         this.pos = -1;
         nextChar();
