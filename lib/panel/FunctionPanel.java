@@ -2,6 +2,7 @@ package lib.panel;
 import javax.swing.*;
 
 import lib.Function;
+import lib.PlottableFunction;
 import lib.panel.plot.PlotPanel;
 
 import java.awt.*;
@@ -106,13 +107,14 @@ public class FunctionPanel extends JPanel {
             ? createFunction(expression, name) 
             : createFunction(expression);
         
-        plotPanel.addFunction(function);
-        
+        if (function instanceof PlottableFunction)
+            plotPanel.addFunction((PlottableFunction)function);
+
         // Create and add UI entry
-        FunctionEntry entry = createFunctionEntry(function);
+        FunctionEntry entry = (function instanceof PlottableFunction ? createFunctionEntry((PlottableFunction)function) : createFunctionEntry(function));
         functionItems.add(entry);
         addEntryToPanel(entry);
-        
+    
         // Refresh UI
         refreshPanels();
         inputField.setText("");
@@ -138,10 +140,10 @@ public class FunctionPanel extends JPanel {
      * @param expression The function expression
      * @return The created Function
      */
-    private Function createFunction(String expression) {
+    private PlottableFunction createFunction(String expression) {
 
         Color randomColor = generateRandomColor();
-        return new Function(expression, randomColor);
+        return new PlottableFunction(expression, randomColor);
     }
     
     /**
@@ -149,10 +151,10 @@ public class FunctionPanel extends JPanel {
      * @param expression The function expression
      * @return The created Function
      */
-    private Function createFunction(String expression, String name) {
+    private PlottableFunction createFunction(String expression, String name) {
 
         Color randomColor = generateRandomColor();
-        return new Function(expression, randomColor, name);
+        return new PlottableFunction(expression, randomColor, name);
     }
     
     /**
@@ -165,6 +167,20 @@ public class FunctionPanel extends JPanel {
         final FunctionEntry[] entryHolder = new FunctionEntry[1];
         
         entryHolder[0] = new FunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        
+        return entryHolder[0];
+    }
+
+    private PlottableFunctionEntry createFunctionEntry(PlottableFunction function) {
+
+        final PlottableFunctionEntry[] entryHolder = new PlottableFunctionEntry[1];
+        
+        entryHolder[0] = new PlottableFunctionEntry(
             function,
             this::onVisibilityChanged,
             () -> onFunctionRemove(function, entryHolder[0]),

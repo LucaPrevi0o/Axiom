@@ -2,6 +2,7 @@ package lib.panel.plot;
 import javax.swing.*;
 
 import lib.Function;
+import lib.PlottableFunction;
 import lib.expression.ExpressionEvaluator;
 
 import java.awt.*;
@@ -14,7 +15,7 @@ import java.util.List;
  */
 public class PlotPanel extends JPanel {
 
-    private List<Function> functions = new ArrayList<>();
+    private List<PlottableFunction> functions = new ArrayList<>();
     private PlotViewport viewport;
 
     /**
@@ -31,7 +32,7 @@ public class PlotPanel extends JPanel {
      * 
      * @param function The Function object to add
      */
-    public void addFunction(Function function) {
+    public void addFunction(PlottableFunction function) {
         this.functions.add(function);
     }
     
@@ -56,7 +57,7 @@ public class PlotPanel extends JPanel {
      * 
      * @return List of all Function objects
      */
-    public List<Function> getFunctions() {
+    public List<PlottableFunction> getFunctions() {
         return functions;
     }
 
@@ -151,7 +152,7 @@ public class PlotPanel extends JPanel {
 
         g2.setStroke(new BasicStroke(2));
 
-        for (Function function : functions) {
+        for (PlottableFunction function : functions) {
 
             if (!function.isVisible()) continue;
             
@@ -189,15 +190,9 @@ public class PlotPanel extends JPanel {
 
                         path.moveTo(screenX, screenY);
                         firstPoint = false;
-                    } else {
-                        path.lineTo(screenX, screenY);
-                    }
-                } else {
-                    firstPoint = true;
-                }
-            } catch (Exception e) {
-                firstPoint = true;
-            }
+                    } else path.lineTo(screenX, screenY);
+                } else firstPoint = true;
+            } catch (Exception e) { firstPoint = true; }
         }
         
         return path;
