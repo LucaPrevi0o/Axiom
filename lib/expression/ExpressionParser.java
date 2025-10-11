@@ -164,6 +164,7 @@ public class ExpressionParser {
     private double applyFunction(String func, double x, double param) throws Exception {
 
         switch (func) {
+            
             case "log": return Math.log(x) / Math.log(param);
             case "root": return Math.pow(x, 1.0 / param);
             default: throw new Exception("Unknown function: " + func);

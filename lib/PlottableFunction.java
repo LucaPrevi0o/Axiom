@@ -2,8 +2,6 @@ package lib;
 
 import java.awt.Color;
 
-import lib.panel.plot.PlotPanel;
-
 public class PlottableFunction extends Function {
     
     private Color color;

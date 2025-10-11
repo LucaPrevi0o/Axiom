@@ -27,9 +27,7 @@ public class PlotViewport {
     /**
      * Constructor with default bounds (-10 to 10 on both axes)
      */
-    public PlotViewport() {
-        // Use default values
-    }
+    public PlotViewport() {}
     
     /**
      * Constructor with custom bounds

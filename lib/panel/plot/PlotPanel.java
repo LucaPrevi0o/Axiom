@@ -22,6 +22,7 @@ public class PlotPanel extends JPanel {
      * Constructor to set up the panel
      */
     public PlotPanel() {
+
         setBackground(Color.WHITE);
         viewport = new PlotViewport();
         viewport.attachMouseListeners(this);
@@ -41,25 +42,19 @@ public class PlotPanel extends JPanel {
      * 
      * @param function The Function object to remove
      */
-    public void removeFunction(Function function) {
-        this.functions.remove(function);
-    }
+    public void removeFunction(Function function) { this.functions.remove(function); }
     
     /**
      * Clear all functions from the graph
      */
-    public void clearFunctions() {
-        this.functions.clear();
-    }
+    public void clearFunctions() { this.functions.clear(); }
     
     /**
      * Get all functions
      * 
      * @return List of all Function objects
      */
-    public List<PlottableFunction> getFunctions() {
-        return functions;
-    }
+    public List<PlottableFunction> getFunctions() { return functions; }
 
     /**
      * Override paintComponent to draw the graphics
