@@ -2,7 +2,7 @@ package lib;
 import javax.swing.*;
 
 import lib.panel.FunctionPanel;
-import lib.panel.PlotPanel;
+import lib.panel.plot.PlotPanel;
 
 import java.awt.*;
 

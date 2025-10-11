@@ -2,6 +2,7 @@ package lib.panel;
 import javax.swing.*;
 
 import lib.Function;
+import lib.panel.plot.PlotPanel;
 
 import java.awt.*;
 import java.util.ArrayList;

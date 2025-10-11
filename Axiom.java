@@ -3,7 +3,7 @@ import javax.swing.*;
 
 import lib.GraphingCalculator;
 
-public class Main {
+public class Axiom {
     public static void main(String[] args) {
         
         SwingUtilities.invokeLater(() -> {

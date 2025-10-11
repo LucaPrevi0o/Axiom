@@ -1,0 +1,72 @@
+NAME="Axiom"
+FOLDER="java"
+
+# Parse optional arguments for file and folder
+parse_args() {
+    # If second argument is provided, use it as NAME
+    if [ -n "$1" ]; then
+        NAME="$1"
+    fi
+    # If third argument is provided, use it as FOLDER
+    if [ -n "$2" ]; then
+        FOLDER="$2"
+    fi
+}
+
+compile() {
+    echo "Compiling ${NAME}.java into ${FOLDER}/..."
+    javac -d ${FOLDER} ${NAME}.java
+}
+
+run() { 
+    echo "Running ${NAME} from ${FOLDER}/..."
+    java -cp ${FOLDER} ${NAME}
+}
+
+clean() { 
+    echo "Cleaning ${FOLDER}/..."
+    find ${FOLDER} -name "*.class" -type f -delete
+    echo "Cleaned up compiled class files."
+}
+
+all() { 
+    compile
+    run
+}
+
+help() { 
+    echo "Usage: ${0##*/} [command] [file] [folder]"
+    echo ""
+    echo "Commands:"
+    echo "  compile   Compile the Java source files"
+    echo "  run       Run the main Java class"
+    echo "  clean     Remove compiled class files"
+    echo "  all       Compile and run the Java program"
+    echo "  help      Display this help message"
+    echo ""
+    echo "Optional Arguments:"
+    echo "  file      Name of the main Java file (default: Axiom)"
+    echo "  folder    Output folder for compiled classes (default: java)"
+}
+
+# Default action: compile
+if [ $# -eq 0 ]; then
+    compile
+else
+
+    # Parse the command
+    COMMAND=$1
+    shift  # Remove first argument (command)
+    
+    # Parse optional file and folder arguments
+    parse_args "$@"
+    
+    case $COMMAND in
+        compile) compile ;;
+        run) run ;;
+        clean) clean ;;
+        all) all ;;
+        help) help ;;
+        *) echo "Unknown command: $COMMAND" ; help ;;
+    esac
+fi

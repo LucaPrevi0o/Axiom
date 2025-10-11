@@ -1,5 +1,4 @@
-package lib.panel;
-// GraphPanel.java
+package lib.panel.plot;
 import javax.swing.*;
 
 import lib.Function;
@@ -16,18 +15,15 @@ import java.util.List;
 public class PlotPanel extends JPanel {
 
     private List<Function> functions = new ArrayList<>();
-
-    // Graph bounds
-    private double minX = -10;
-    private double maxX = 10;
-    private double minY = -10;
-    private double maxY = 10;
+    private PlotViewport viewport;
 
     /**
      * Constructor to set up the panel
      */
     public PlotPanel() {
         setBackground(Color.WHITE);
+        viewport = new PlotViewport();
+        viewport.attachMouseListeners(this);
     }
 
     /**
@@ -91,14 +87,14 @@ public class PlotPanel extends JPanel {
         g2.setStroke(new BasicStroke(1));
 
         // Vertical grid lines
-        for (int i = (int) minX; i <= maxX; i++) {
+        for (int i = (int) viewport.getMinX(); i <= viewport.getMaxX(); i++) {
 
             int x = xToScreen(i);
             g2.drawLine(x, 0, x, getHeight());
         }
 
         // Horizontal grid lines
-        for (int i = (int) minY; i <= maxY; i++) {
+        for (int i = (int) viewport.getMinY(); i <= viewport.getMaxY(); i++) {
 
             int y = yToScreen(i);
             g2.drawLine(0, y, getWidth(), y);
@@ -125,7 +121,7 @@ public class PlotPanel extends JPanel {
 
         // Draw tick marks and labels
         g2.setFont(new Font("Arial", Font.PLAIN, 10));
-        for (int i = (int) minX; i <= maxX; i++) {
+        for (int i = (int) viewport.getMinX(); i <= viewport.getMaxX(); i++) {
 
             if (i != 0) {
 
@@ -135,7 +131,7 @@ public class PlotPanel extends JPanel {
             }
         }
 
-        for (int i = (int) minY; i <= maxY; i++) {
+        for (int i = (int) viewport.getMinY(); i <= viewport.getMaxY(); i++) {
 
             if (i != 0) {
 
@@ -209,18 +205,25 @@ public class PlotPanel extends JPanel {
 
     // Coordinate conversion methods
     private int xToScreen(double x) {
-        return (int) ((x - minX) / (maxX - minX) * getWidth());
+        return (int) ((x - viewport.getMinX()) / (viewport.getMaxX() - viewport.getMinX()) * getWidth());
     }
 
     private int yToScreen(double y) {
-        return (int) ((maxY - y) / (maxY - minY) * getHeight());
+        return (int) ((viewport.getMaxY() - y) / (viewport.getMaxY() - viewport.getMinY()) * getHeight());
     }
 
     private double screenToX(int screenX) {
-        return minX + (screenX * (maxX - minX) / getWidth());
+        return viewport.getMinX() + (screenX * (viewport.getMaxX() - viewport.getMinX()) / getWidth());
     }
 
     private double screenToY(int screenY) {
-        return maxY - (screenY * (maxY - minY) / getHeight());
+        return viewport.getMaxY() - (screenY * (viewport.getMaxY() - viewport.getMinY()) / getHeight());
     }
+    
+    /**
+     * Get the viewport for direct access to bounds
+     * 
+     * @return The PlotViewport instance
+     */
+    public PlotViewport getViewport() { return viewport; }
 }
