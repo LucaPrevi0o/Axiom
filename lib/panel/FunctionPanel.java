@@ -56,7 +56,7 @@ public class FunctionPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createTitledBorder("Functions"));
         
         // Input field for new functions
-        inputField = new JTextField("x^2");
+        inputField = new JTextField("");
         
         // Plot button
         plotButton = new JButton("Plot");
@@ -72,7 +72,6 @@ public class FunctionPanel extends JPanel {
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5));
         JPanel inputPanel = new JPanel(new BorderLayout(5, 5));
         inputPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-        inputPanel.add(new JLabel("f(x) = "), BorderLayout.WEST);
         inputPanel.add(inputField, BorderLayout.CENTER);
         
         bottomPanel.add(inputPanel, BorderLayout.NORTH);
