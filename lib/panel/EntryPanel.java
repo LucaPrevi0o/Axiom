@@ -3,11 +3,13 @@ import javax.swing.*;
 
 import lib.function.Function;
 import lib.function.functions.ExpressionFunction;
+import lib.function.functions.NumberSetFunction;
 import lib.function.functions.RangeFunction;
 import lib.panel.entry.FunctionEntry;
 import lib.panel.entry.PlottableFunctionEntry;
 import lib.panel.entry.entries.ExpressionFunctionEntry;
 import lib.panel.entry.entries.RangeFunctionEntry;
+import lib.panel.entry.entries.NumberSetFunctionEntry;
 import lib.panel.plot.PlotPanel;
 import lib.parser.InputParser;
 import lib.parser.InputParser.ParseResult;
@@ -121,11 +123,7 @@ public class EntryPanel extends JPanel {
                 addRangeFromParseResult(parseResult);
                 break;
             case NUMBER_SET:
-                // TODO: Implement number set handling
-                JOptionPane.showMessageDialog(this, 
-                    "Number sets are not yet implemented", 
-                    "Not Implemented", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                addNumberSetFromParseResult(parseResult);
                 break;
             default:
                 JOptionPane.showMessageDialog(this, 
@@ -190,6 +188,34 @@ public class EntryPanel extends JPanel {
         // Create and add UI entry using factory
         final FunctionEntry<?>[] entryHolder = new FunctionEntry<?>[1];
         entryHolder[0] = new RangeFunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        functionItems.add(entryHolder[0]);
+        addEntryToPanel(entryHolder[0]);
+
+        // Refresh UI
+        refreshPanels();
+    }
+
+    private void addNumberSetFromParseResult(ParseResult parseResult) {
+
+        String name = parseResult.getName();
+        String expression = parseResult.getExpression();
+
+        // Validate expression
+        if (!validateInput(expression)) return;
+
+        // Create Function object using factory
+        NumberSetFunction function = parseResult.hasName()
+            ? new NumberSetFunction(expression, name)
+            : new NumberSetFunction(expression);
+
+        // Create and add UI entry using factory
+        final FunctionEntry<?>[] entryHolder = new FunctionEntry<?>[1];
+        entryHolder[0] = new NumberSetFunctionEntry(
             function,
             this::onVisibilityChanged,
             () -> onFunctionRemove(function, entryHolder[0]),

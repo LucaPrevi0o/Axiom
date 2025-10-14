@@ -48,7 +48,7 @@ public abstract class FunctionEntry<T extends Function> extends JPanel {
     protected void initComponents(Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
         
         // Expression label
-        expressionLabel = new JLabel((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
+        expressionLabel = new JLabel((function.getName() == null ? "" : function.getName() + " = ") + function.getExpression());
         expressionLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
         // Input field for editing expression
@@ -132,7 +132,7 @@ public abstract class FunctionEntry<T extends Function> extends JPanel {
      */
     public void updateExpression() {
 
-        expressionLabel.setText((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
+        expressionLabel.setText((function.getName() == null ? "" : function.getName() + " = ") + function.getExpression());
         inputField.setText(function.getExpression());
         revalidate();
         repaint();
