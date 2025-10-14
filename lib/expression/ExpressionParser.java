@@ -46,7 +46,8 @@ public class ExpressionParser {
     }
     
     /**
-     * Parse a term in the expression
+     * Parse a term in the expression.
+     * A term is a factor possibly followed by * or / and another term.
      * @return The parsed result ({@code double})
      * @throws Exception If the expression is invalid
      */
@@ -62,7 +63,8 @@ public class ExpressionParser {
     }
     
     /**
-     * Parse a factor in the expression
+     * Parse a factor in the expression.
+     * A factor can be a number, a parenthesized expression, a function call, or a unary +/-.
      * @return The parsed result ({@code double})
      * @throws Exception If the expression is invalid
      */
@@ -72,6 +74,7 @@ public class ExpressionParser {
         if (tokenizer.eat('-')) return -parseFactor();
         
         double x;
+        
         
         if (tokenizer.eat('(')) {
 
@@ -85,11 +88,17 @@ public class ExpressionParser {
 
             String func = tokenizer.readFunctionName();
             
-            // Check for parameterized functions like root{N} or log{N}
-            String paramStr = tokenizer.readParameter();
-            
-            x = parseFactor();
-            x = paramStr != null ? applyFunction(func, x, Double.parseDouble(paramStr)) : applyFunction(func, x);
+            // Check if it's a constant (pi or e)
+            if (func.equals("pi")) x = Math.PI;
+            else if (func.equals("e")) x = Math.E;
+            else {
+                
+                // It's a function - check for parameters
+                String paramStr = tokenizer.readParameter();
+                
+                x = parseFactor();
+                x = paramStr != null ? applyFunction(func, x, Double.parseDouble(paramStr)) : applyFunction(func, x);
+            }
         } else throw new Exception("Unexpected: " + (char) tokenizer.getCurrentChar());
 
         if (tokenizer.eat('^'))  x = Math.pow(x, parseFactor());

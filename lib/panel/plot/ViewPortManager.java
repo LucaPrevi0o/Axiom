@@ -10,7 +10,7 @@ import javax.swing.JPanel;
  * Manages the viewport bounds (min/max X/Y) for the plot panel
  * and handles zoom and pan interactions
  */
-public class PlotViewport {
+public class ViewPortManager {
     
     // Graph bounds
     private double minX = -10;
@@ -27,7 +27,7 @@ public class PlotViewport {
     /**
      * Constructor with default bounds (-10 to 10 on both axes)
      */
-    public PlotViewport() {}
+    public ViewPortManager() {}
     
     /**
      * Constructor with custom bounds
@@ -37,7 +37,7 @@ public class PlotViewport {
      * @param minY Minimum Y value
      * @param maxY Maximum Y value
      */
-    public PlotViewport(double minX, double maxX, double minY, double maxY) {
+    public ViewPortManager(double minX, double maxX, double minY, double maxY) {
 
         this.minX = minX;
         this.maxX = maxX;

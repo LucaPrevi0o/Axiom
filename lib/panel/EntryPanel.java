@@ -1,8 +1,10 @@
 package lib.panel;
 import javax.swing.*;
 
-import lib.Function;
-import lib.PlottableFunction;
+import lib.function.Function;
+import lib.function.PlottableFunction;
+import lib.panel.entry.FunctionEntry;
+import lib.panel.entry.PlottableFunctionEntry;
 import lib.panel.plot.PlotPanel;
 
 import java.awt.*;
@@ -14,7 +16,7 @@ import java.util.regex.Pattern;
 /**
  * Side panel containing the function list and plot controls
  */
-public class FunctionPanel extends JPanel {
+public class EntryPanel extends JPanel {
 
     private JPanel functionListPanel;
     private JScrollPane scrollPane;
@@ -27,7 +29,7 @@ public class FunctionPanel extends JPanel {
      * Constructor
      * @param plotPanel The PlotPanel to interact with
      */
-    public FunctionPanel(PlotPanel plotPanel) {
+    public EntryPanel(PlotPanel plotPanel) {
         this.plotPanel = plotPanel;
         this.functionItems = new ArrayList<>();
         

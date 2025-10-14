@@ -1,54 +1,51 @@
-package lib.panel;
+package lib.panel.entry;
+import javax.swing.*;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.Insets;
+import lib.function.Function;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+import java.awt.*;
 
-import lib.PlottableFunction;
+/**
+ * UI component representing a single function in the function list.
+ * Displays function expression, color indicator, and visibility toggle.
+ */
+public class FunctionEntry extends JPanel {
 
-public class PlottableFunctionEntry extends FunctionEntry {
-
-    private JCheckBox visibilityCheckBox;
-    private JPanel colorIndicator;
+    protected Function function;
+    protected JLabel expressionLabel;
+    protected JTextField inputField;
+    protected JButton removeButton;
+    protected JButton editButton;
     
     /**
      * Constructor
-     * 
-     * @param function The PlottableFunction object
+     * @param function The Function object this item represents
+     * @param onVisibilityChanged Callback when visibility is toggled
+     * @param onRemove Callback when remove button is clicked
      */
-    public PlottableFunctionEntry(PlottableFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+    public FunctionEntry(Function function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
 
-        super(function, onVisibilityChanged, onRemove, onEdit);
-        this.visibilityCheckBox = new JCheckBox();
-        this.colorIndicator = new JPanel();
+        this.function = function;
+        
+        setLayout(new BorderLayout(5, 5));
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        setBackground(Color.WHITE);
+        
+        // Set fixed height (increased to accommodate two rows)
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        setPreferredSize(new Dimension(280, 70));
+        
+        initComponents(onVisibilityChanged, onRemove, onEdit);
+        layoutComponents();
     }
     
     /**
      * Initialize the components
-     * @param onVisibilityChanged Callback when visibility is toggled
-     * @param onRemove Callback when remove button is clicked
-     * @param onEdit Callback when edit button is clicked
      */
-    @Override
     protected void initComponents(Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
-
-        // Visibility checkbox
-        visibilityCheckBox = new JCheckBox();
-        visibilityCheckBox.setSelected(((PlottableFunction)function).isVisible());
-        visibilityCheckBox.addActionListener(e -> {
-            ((PlottableFunction)function).setVisible(visibilityCheckBox.isSelected());
-            if (onVisibilityChanged != null) { onVisibilityChanged.run(); }
-        });
         
         // Expression label
         expressionLabel = new JLabel((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
@@ -59,12 +56,6 @@ public class PlottableFunctionEntry extends FunctionEntry {
         inputField.setFont(new Font("Monospaced", Font.PLAIN, 12));
         inputField.setPreferredSize(new Dimension(200, 25));
         inputField.setVisible(false);
-        
-        // Color indicator
-        colorIndicator = new JPanel();
-        colorIndicator.setBackground(((PlottableFunction)function).getColor());
-        colorIndicator.setPreferredSize(new Dimension(20, 20));
-        colorIndicator.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         
         // Remove button
         removeButton = new JButton("×");
@@ -96,11 +87,10 @@ public class PlottableFunctionEntry extends FunctionEntry {
             expressionLabel.setVisible(isEditing);
         });
     }
-
+    
     /**
      * Layout the components
      */
-    @Override
     protected void layoutComponents() {
 
         // Top panel with interactive elements (checkbox, color, remove button)
@@ -109,8 +99,6 @@ public class PlottableFunctionEntry extends FunctionEntry {
         
         JPanel leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         leftControls.setBackground(Color.WHITE);
-        leftControls.add(visibilityCheckBox);
-        leftControls.add(colorIndicator);
         
         topPanel.add(leftControls, BorderLayout.WEST);
         topPanel.add(editButton, BorderLayout.CENTER);
@@ -126,25 +114,27 @@ public class PlottableFunctionEntry extends FunctionEntry {
         add(topPanel, BorderLayout.NORTH);
         add(bottomPanel, BorderLayout.CENTER);
     }
-
+    
     /**
-     * Get the PlottableFunction object
-     * 
-     * @return The PlottableFunction
+     * Get the function associated with this item
+     * @return The Function object
      */
-    public PlottableFunction getFunction() { return (PlottableFunction)function; }
-
+    public Function getFunction() { return function; }
+    
     /**
-     * Get the visibility checkbox
-     * 
-     * @return The JCheckBox
+     * Get the text from the input field
+     * @return The text in the input field
      */
-    public JCheckBox getVisibilityCheckBox() { return visibilityCheckBox; }
-
+    public String getInputFieldText() { return inputField.getText(); }
+    
     /**
-     * Get the color indicator panel
-     * 
-     * @return The JPanel showing the color
+     * Update the expression label to reflect the current function expression
      */
-    public JPanel getColorIndicator() { return colorIndicator; }
+    public void updateExpression() {
+
+        expressionLabel.setText((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
+        inputField.setText(function.getExpression());
+        revalidate();
+        repaint();
+    }
 }

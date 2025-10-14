@@ -1,7 +1,7 @@
 package lib;
 import javax.swing.*;
 
-import lib.panel.FunctionPanel;
+import lib.panel.EntryPanel;
 import lib.panel.plot.PlotPanel;
 
 import java.awt.*;
@@ -9,7 +9,7 @@ import java.awt.*;
 public class GraphingCalculator extends JFrame {
 
     private PlotPanel plotPanel;
-    private FunctionPanel functionPanel;
+    private EntryPanel functionPanel;
     
     /**
      * Constructor to set up the GUI components and layout
@@ -30,7 +30,7 @@ public class GraphingCalculator extends JFrame {
      */
     private void initComponents() {
         plotPanel = new PlotPanel();
-        functionPanel = new FunctionPanel(plotPanel);
+        functionPanel = new EntryPanel(plotPanel);
     }
     
     /**

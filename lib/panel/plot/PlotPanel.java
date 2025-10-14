@@ -1,9 +1,9 @@
 package lib.panel.plot;
 import javax.swing.*;
 
-import lib.Function;
-import lib.PlottableFunction;
 import lib.expression.ExpressionEvaluator;
+import lib.function.Function;
+import lib.function.PlottableFunction;
 
 import java.awt.*;
 import java.awt.geom.*;
@@ -16,7 +16,7 @@ import java.util.List;
 public class PlotPanel extends JPanel {
 
     private List<PlottableFunction> functions = new ArrayList<>();
-    private PlotViewport viewport;
+    private ViewPortManager viewport;
 
     /**
      * Constructor to set up the panel
@@ -24,7 +24,7 @@ public class PlotPanel extends JPanel {
     public PlotPanel() {
 
         setBackground(Color.WHITE);
-        viewport = new PlotViewport();
+        viewport = new ViewPortManager();
         viewport.attachMouseListeners(this);
     }
 
@@ -215,5 +215,5 @@ public class PlotPanel extends JPanel {
      * 
      * @return The PlotViewport instance
      */
-    public PlotViewport getViewport() { return viewport; }
+    public ViewPortManager getViewport() { return viewport; }
 }

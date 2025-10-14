@@ -1,4 +1,4 @@
-package lib;
+package lib.function;
 
 /**
  * Represents a mathematical function.
