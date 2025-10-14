@@ -2,14 +2,10 @@ package lib.panel;
 import javax.swing.*;
 
 import lib.function.Function;
-import lib.function.functions.ExpressionFunction;
-import lib.function.functions.NumberSetFunction;
-import lib.function.functions.RangeFunction;
+import lib.function.functions.*;
 import lib.panel.entry.FunctionEntry;
 import lib.panel.entry.PlottableFunctionEntry;
-import lib.panel.entry.entries.ExpressionFunctionEntry;
-import lib.panel.entry.entries.RangeFunctionEntry;
-import lib.panel.entry.entries.NumberSetFunctionEntry;
+import lib.panel.entry.entries.*;
 import lib.panel.plot.PlotPanel;
 import lib.parser.InputParser;
 import lib.parser.InputParser.ParseResult;
@@ -125,6 +121,9 @@ public class EntryPanel extends JPanel {
             case NUMBER_SET:
                 addNumberSetFromParseResult(parseResult);
                 break;
+            case CONSTANT:
+                addConstantFromParseResult(parseResult);
+                break;
             default:
                 JOptionPane.showMessageDialog(this, 
                     "Unsupported input type", 
@@ -227,6 +226,34 @@ public class EntryPanel extends JPanel {
         // Refresh UI
         refreshPanels();
     }
+
+    private void addConstantFromParseResult(ParseResult parseResult) {
+
+        String name = parseResult.getName();
+        String expression = parseResult.getExpression();
+
+        // Validate expression
+        if (!validateInput(expression)) return;
+
+        // Create Function object using factory
+        ConstantFunction function = parseResult.hasName()
+            ? new ConstantFunction(expression, name)
+            : new ConstantFunction(expression);
+
+        // Create and add UI entry using factory
+        final FunctionEntry<?>[] entryHolder = new FunctionEntry<?>[1];
+        entryHolder[0] = new ConstantFunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        functionItems.add(entryHolder[0]);
+        addEntryToPanel(entryHolder[0]);
+
+        // Refresh UI
+        refreshPanels();
+    }
     
     /**
      * Validate the input expression
@@ -257,7 +284,31 @@ public class EntryPanel extends JPanel {
     /**
      * Callback when function visibility is changed
      */
-    private void onVisibilityChanged() { plotPanel.repaint(); }
+    private void onVisibilityChanged() { 
+
+        updateConstants();
+        plotPanel.repaint(); 
+    }
+    
+    /**
+     * Update the constants map in the PlotPanel based on current ConstantFunction entries
+     */
+    private void updateConstants() {
+
+        java.util.Map<String, Double> constantsMap = new java.util.HashMap<>();
+        
+        for (FunctionEntry<?> entry : functionItems)
+            if (entry instanceof ConstantFunctionEntry) {
+
+                ConstantFunctionEntry constantEntry = (ConstantFunctionEntry)entry;
+                ConstantFunction constantFunction = constantEntry.getFunction();
+                
+                // Only add if it has a name
+                if (constantFunction.getName() != null) constantsMap.put(constantFunction.getName(), constantFunction.getValue());
+            }
+        
+        plotPanel.setConstants(constantsMap);
+    }
     
     /**
      * Callback when a function is removed
@@ -279,7 +330,6 @@ public class EntryPanel extends JPanel {
     private void removeEntryFromPanel(FunctionEntry<?> entry) {
 
         int index = findEntryIndex(entry);
-        
         if (index >= 0) {
 
             functionListPanel.remove(index); // Remove the FunctionEntry
@@ -323,6 +373,7 @@ public class EntryPanel extends JPanel {
      */
     private void refreshPanels() {
 
+        updateConstants();
         functionListPanel.revalidate();
         functionListPanel.repaint();
         plotPanel.repaint();

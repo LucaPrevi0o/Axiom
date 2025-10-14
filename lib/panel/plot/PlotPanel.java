@@ -8,7 +8,9 @@ import lib.parser.expression.ExpressionEvaluator;
 import java.awt.*;
 import java.awt.geom.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Panel to graph mathematical functions
@@ -16,6 +18,7 @@ import java.util.List;
 public class PlotPanel extends JPanel {
 
     private List<PlottableFunction> functions = new ArrayList<>();
+    private Map<String, Double> constants = new HashMap<>();
     private ViewPortManager viewport;
 
     /**
@@ -48,6 +51,15 @@ public class PlotPanel extends JPanel {
      * Clear all functions from the graph
      */
     public void clearFunctions() { this.functions.clear(); }
+    
+    /**
+     * Set the constants map for expression evaluation
+     * 
+     * @param constants Map of constant names to their values
+     */
+    public void setConstants(Map<String, Double> constants) {
+        this.constants = constants != null ? constants : new HashMap<>();
+    }
     
     /**
      * Get all functions
@@ -174,8 +186,8 @@ public class PlotPanel extends JPanel {
             double x = screenToX(screenX);
             try {
 
-                // Evaluate the function using ExpressionEvaluator
-                double y = ExpressionEvaluator.evaluate(function.getExpression(), x);
+                // Evaluate the function using ExpressionEvaluator with constants
+                double y = ExpressionEvaluator.evaluate(function.getExpression(), x, constants);
 
                 // Check if y is within bounds
                 if (!Double.isNaN(y) && !Double.isInfinite(y)) {

@@ -40,6 +40,7 @@ public class InputParser {
          * @return The start value, or null if not a range
          */
         public Double getRangeStart() {
+
             if (type != InputType.RANGE) return null;
             String[] parts = expression.replace("[", "").replace("]", "").split(":");
             return Double.parseDouble(parts[0].trim());
@@ -50,6 +51,7 @@ public class InputParser {
          * @return The end value, or null if not a range
          */
         public Double getRangeEnd() {
+
             if (type != InputType.RANGE) return null;
             String[] parts = expression.replace("[", "").replace("]", "").split(":");
             return Double.parseDouble(parts[1].trim());
@@ -60,15 +62,14 @@ public class InputParser {
          * @return Array of numbers, or null if not a number set
          */
         public Double[] getNumberSetValues() {
+
             if (type != InputType.NUMBER_SET) return null;
             String content = expression.replace("{", "").replace("}", "").trim();
             if (content.isEmpty()) return new Double[0];
             
             String[] parts = content.split(",");
             Double[] values = new Double[parts.length];
-            for (int i = 0; i < parts.length; i++) {
-                values[i] = Double.parseDouble(parts[i].trim());
-            }
+            for (int i = 0; i < parts.length; i++) values[i] = Double.parseDouble(parts[i].trim());
             return values;
         }
     }
@@ -79,7 +80,8 @@ public class InputParser {
     public enum InputType {
         EXPRESSION,         // Expression (e.g., "x^2", "sin(x)+2*x")
         RANGE,              // Range definition (e.g., "c=[1:5]")
-        NUMBER_SET          // Number set definition (e.g., "s={1,2,3}")
+        NUMBER_SET,         // Number set definition (e.g., "s={1,2,3}")
+        CONSTANT            // Constant/parameter definition (e.g., "k=[[1:5]]")
     }
     
     // Regex patterns
@@ -107,6 +109,14 @@ public class InputParser {
     private static final Pattern UNNAMED_NUMBER_SET_PATTERN = 
         Pattern.compile("^\\{\\s*(-?\\d+(?:\\.\\d+)?(?:\\s*,\\s*-?\\d+(?:\\.\\d+)?)*)\\s*\\}$");
     
+    // Named constant: "k=[[1:5]]", "param=[[-10.5:20.3]]", "a = [[ -5 : 5 ]]"
+    private static final Pattern NAMED_CONSTANT_PATTERN = 
+        Pattern.compile("^([a-zA-Z]\\w*)\\s*=\\s*\\[\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*:\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]\\]$");
+    
+    // Unnamed constant: just "[[1:5]]" or "[[-2.5:10.3]]"
+    private static final Pattern UNNAMED_CONSTANT_PATTERN = 
+        Pattern.compile("^\\[\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*:\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]\\]$");
+    
     /**
      * Parse user input and determine what type of entity should be created
      * @param input The input string to parse
@@ -120,7 +130,11 @@ public class InputParser {
         
         String trimmedInput = input.trim();
         
-        // Try to parse as a range definition (check this first as it's more specific)
+        // Try to parse as a constant definition (check first - most specific with [[]])
+        ParseResult constantResult = parseConstantDefinition(trimmedInput);
+        if (constantResult != null) return constantResult;
+        
+        // Try to parse as a range definition (check this second as it's more specific)
         ParseResult rangeResult = parseRangeDefinition(trimmedInput);
         if (rangeResult != null) return rangeResult;
         
@@ -221,16 +235,36 @@ public class InputParser {
         }
         
         return null;
-    }    /**
-     * Parse function definition (legacy method for backward compatibility)
+    }
+    
+    /**
+     * Parse constant definition to extract name and range bounds
+     * Supports formats:
+     * - Named: "k=[[1:5]]" or "param=[[-2.5:10.3]]"
+     * - Unnamed: "[[1:5]]" or "[[-2.5:10.3]]"
      * @param input The input string
-     * @return String array [name, expression] or [null, expression]
-     * @deprecated Use {@link #parse(String)} instead
+     * @return ParseResult if it matches constant pattern, null otherwise
      */
-    @Deprecated
-    public static String[] parseFunctionDefinitionLegacy(String input) {
+    private static ParseResult parseConstantDefinition(String input) {
 
-        ParseResult result = parse(input);
-        return new String[] { result.getName(), result.getExpression() };
+        // Try named constant first
+        Matcher namedMatcher = NAMED_CONSTANT_PATTERN.matcher(input);
+        Matcher unnamedMatcher = UNNAMED_CONSTANT_PATTERN.matcher(input);
+        if (namedMatcher.matches()) {
+
+            String name = namedMatcher.group(1);
+            String min = namedMatcher.group(2);
+            String max = namedMatcher.group(3);
+            String constantExpression = "[[" + min + ":" + max + "]]";
+            return new ParseResult(InputType.CONSTANT, name, constantExpression);
+        } else if (unnamedMatcher.matches()) {
+
+            String min = unnamedMatcher.group(1);
+            String max = unnamedMatcher.group(2);
+            String constantExpression = "[[" + min + ":" + max + "]]";
+            return new ParseResult(InputType.CONSTANT, null, constantExpression);
+        }
+        
+        return null;
     }
 }
