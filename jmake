@@ -26,6 +26,7 @@ run() {
 clean() { 
     echo "Cleaning ${FOLDER}/..."
     find ${FOLDER} -name "*.class" -type f -delete
+    rm -rf ${FOLDER}/lib
     echo "Cleaned up compiled class files."
 }
 
