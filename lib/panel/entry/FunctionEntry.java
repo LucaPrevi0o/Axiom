@@ -9,9 +9,9 @@ import java.awt.*;
  * UI component representing a single function in the function list.
  * Displays function expression, color indicator, and visibility toggle.
  */
-public class FunctionEntry extends JPanel {
+public abstract class FunctionEntry<T extends Function> extends JPanel {
 
-    protected Function function;
+    protected T function;
     protected JLabel expressionLabel;
     protected JTextField inputField;
     protected JButton removeButton;
@@ -23,7 +23,7 @@ public class FunctionEntry extends JPanel {
      * @param onVisibilityChanged Callback when visibility is toggled
      * @param onRemove Callback when remove button is clicked
      */
-    public FunctionEntry(Function function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+    public FunctionEntry(T function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
 
         this.function = function;
         

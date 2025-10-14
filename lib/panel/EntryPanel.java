@@ -2,16 +2,19 @@ package lib.panel;
 import javax.swing.*;
 
 import lib.function.Function;
-import lib.function.PlottableFunction;
+import lib.function.functions.ExpressionFunction;
+import lib.function.functions.RangeFunction;
 import lib.panel.entry.FunctionEntry;
 import lib.panel.entry.PlottableFunctionEntry;
+import lib.panel.entry.entries.ExpressionFunctionEntry;
+import lib.panel.entry.entries.RangeFunctionEntry;
 import lib.panel.plot.PlotPanel;
+import lib.parser.InputParser;
+import lib.parser.InputParser.ParseResult;
 
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Side panel containing the function list and plot controls
@@ -22,7 +25,7 @@ public class EntryPanel extends JPanel {
     private JScrollPane scrollPane;
     private JTextField inputField;
     private JButton plotButton;
-    private List<FunctionEntry> functionItems;
+    private List<FunctionEntry<?>> functionItems;
     private PlotPanel plotPanel;
     
     /**
@@ -96,30 +99,107 @@ public class EntryPanel extends JPanel {
         String input = inputField.getText().trim();
         if (!validateInput(input)) return;
         
-        // Parse function definition
-        String[] parsed = parseFunctionDefinition(input);
-        String name = parsed[0];
-        String expression = parsed[1];
+        // Parse input using InputParser
+        ParseResult parseResult;
+        try {
+            parseResult = InputParser.parse(input);
+        } catch (IllegalArgumentException e) {
+
+            JOptionPane.showMessageDialog(this, 
+                e.getMessage(), 
+                "Parse Error", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Handle different input types
+        switch (parseResult.getType()) {
+            case EXPRESSION:
+                addExpressionFromParseResult(parseResult);
+                break;
+            case RANGE:
+                addRangeFromParseResult(parseResult);
+                break;
+            case NUMBER_SET:
+                // TODO: Implement number set handling
+                JOptionPane.showMessageDialog(this, 
+                    "Number sets are not yet implemented", 
+                    "Not Implemented", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                break;
+            default:
+                JOptionPane.showMessageDialog(this, 
+                    "Unsupported input type", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                break;
+        }
+        
+        // Clear input field
+        inputField.setText("");
+    }
+    
+    /**
+     * Add a function from a ParseResult
+     * @param parseResult The parsed result containing function information
+     */
+    private void addExpressionFromParseResult(ParseResult parseResult) {
+        
+        String name = parseResult.getName();
+        String expression = parseResult.getExpression();
         
         // Validate expression
         if (!validateInput(expression)) return;
         
-        // Create Function object
-        Function function = (name != null) 
-            ? createFunction(expression, name) 
-            : createFunction(expression);
+        // Create Function object using factory
+        Color randomColor = generateRandomColor();
+        ExpressionFunction function = parseResult.hasName()
+            ? new ExpressionFunction(expression, randomColor, name)
+            : new ExpressionFunction(expression, randomColor);
         
-        if (function instanceof PlottableFunction)
-            plotPanel.addFunction((PlottableFunction)function);
+        plotPanel.addFunction(function);
 
-        // Create and add UI entry
-        FunctionEntry entry = (function instanceof PlottableFunction ? createFunctionEntry((PlottableFunction)function) : createFunctionEntry(function));
-        functionItems.add(entry);
-        addEntryToPanel(entry);
+        // Create and add UI entry using factory
+        final PlottableFunctionEntry<?>[] entryHolder = new PlottableFunctionEntry<?>[1];
+        entryHolder[0] = new ExpressionFunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        functionItems.add(entryHolder[0]);
+        addEntryToPanel(entryHolder[0]);
     
         // Refresh UI
         refreshPanels();
-        inputField.setText("");
+    }
+
+    private void addRangeFromParseResult(ParseResult parseResult) {
+
+        String name = parseResult.getName();
+        String expression = parseResult.getExpression();
+
+        // Validate expression
+        if (!validateInput(expression)) return;
+
+        // Create Function object using factory
+        RangeFunction function = parseResult.hasName()
+            ? new RangeFunction(expression, name)
+            : new RangeFunction(expression);
+
+        // Create and add UI entry using factory
+        final FunctionEntry<?>[] entryHolder = new FunctionEntry<?>[1];
+        entryHolder[0] = new RangeFunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        functionItems.add(entryHolder[0]);
+        addEntryToPanel(entryHolder[0]);
+
+        // Refresh UI
+        refreshPanels();
     }
     
     /**
@@ -138,65 +218,10 @@ public class EntryPanel extends JPanel {
     }
     
     /**
-     * Create a new Function object with a random color
-     * @param expression The function expression
-     * @return The created Function
-     */
-    private PlottableFunction createFunction(String expression) {
-
-        Color randomColor = generateRandomColor();
-        return new PlottableFunction(expression, randomColor);
-    }
-    
-    /**
-     * Create a new Function object with a random color
-     * @param expression The function expression
-     * @return The created Function
-     */
-    private PlottableFunction createFunction(String expression, String name) {
-
-        Color randomColor = generateRandomColor();
-        return new PlottableFunction(expression, randomColor, name);
-    }
-    
-    /**
-     * Create a FunctionEntry UI component for the given function
-     * @param function The function to create an entry for
-     * @return The created FunctionEntry
-     */
-    private FunctionEntry createFunctionEntry(Function function) {
-
-        final FunctionEntry[] entryHolder = new FunctionEntry[1];
-        
-        entryHolder[0] = new FunctionEntry(
-            function,
-            this::onVisibilityChanged,
-            () -> onFunctionRemove(function, entryHolder[0]),
-            () -> onFunctionEdit(function, entryHolder[0])
-        );
-        
-        return entryHolder[0];
-    }
-
-    private PlottableFunctionEntry createFunctionEntry(PlottableFunction function) {
-
-        final PlottableFunctionEntry[] entryHolder = new PlottableFunctionEntry[1];
-        
-        entryHolder[0] = new PlottableFunctionEntry(
-            function,
-            this::onVisibilityChanged,
-            () -> onFunctionRemove(function, entryHolder[0]),
-            () -> onFunctionEdit(function, entryHolder[0])
-        );
-        
-        return entryHolder[0];
-    }
-    
-    /**
      * Add a FunctionEntry to the panel (before the glue)
      * @param entry The entry to add
      */
-    private void addEntryToPanel(FunctionEntry entry) {
+    private void addEntryToPanel(FunctionEntry<?> entry) {
 
         int glueIndex = functionListPanel.getComponentCount() - 1;
         functionListPanel.add(entry, glueIndex);
@@ -213,7 +238,7 @@ public class EntryPanel extends JPanel {
      * @param function The function to remove
      * @param entry The UI entry to remove
      */
-    private void onFunctionRemove(Function function, FunctionEntry entry) {
+    private void onFunctionRemove(Function function, FunctionEntry<?> entry) {
 
         plotPanel.removeFunction(function);
         functionItems.remove(entry);
@@ -225,7 +250,7 @@ public class EntryPanel extends JPanel {
      * Remove a FunctionEntry and its spacing from the panel
      * @param entry The entry to remove
      */
-    private void removeEntryFromPanel(FunctionEntry entry) {
+    private void removeEntryFromPanel(FunctionEntry<?> entry) {
 
         int index = findEntryIndex(entry);
         
@@ -241,7 +266,7 @@ public class EntryPanel extends JPanel {
      * @param entry The entry to find
      * @return The index, or -1 if not found
      */
-    private int findEntryIndex(FunctionEntry entry) {
+    private int findEntryIndex(FunctionEntry<?> entry) {
 
         Component[] components = functionListPanel.getComponents();
         for (int i = 0; i < components.length; i++)
@@ -254,7 +279,7 @@ public class EntryPanel extends JPanel {
      * @param function The function to edit
      * @param entry The UI entry to update
      */
-    private void onFunctionEdit(Function function, FunctionEntry entry) {
+    private void onFunctionEdit(Function function, FunctionEntry<?> entry) {
 
         // Get the new expression from the input field in the entry
         String newExpression = entry.getInputFieldText();
@@ -295,21 +320,5 @@ public class EntryPanel extends JPanel {
         
         int index = functionItems.size() % colors.length;
         return colors[index];
-    }
-    
-    /**
-     * Parse function definition to extract name and expression
-     * Supports formats: "f(x)=x^2" or just "x^2"
-     * @param input The input string
-     * @return Object array [name, expression] or [null, expression]
-     */
-    private String[] parseFunctionDefinition(String input) {
-
-        // Regex to capture: name(x)=expression
-        Pattern pattern = Pattern.compile("^([a-zA-Z]\\w*)\\s*\\(\\s*x\\s*\\)\\s*=\\s*(.+)$");
-        Matcher matcher = pattern.matcher(input.trim());
-        
-        if (matcher.matches()) return new String[] { matcher.group(1), matcher.group(2) };
-        return new String[] { null, input.trim() };
     }
 }

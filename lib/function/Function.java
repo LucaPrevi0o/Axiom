@@ -4,7 +4,7 @@ package lib.function;
  * Represents a mathematical function.
  * Can be extended for additional properties like color and visibility.
  */
-public class Function {
+public abstract class Function {
 
     private String expression;
     private String name;

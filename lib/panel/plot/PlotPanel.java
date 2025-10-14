@@ -1,9 +1,9 @@
 package lib.panel.plot;
 import javax.swing.*;
 
-import lib.expression.ExpressionEvaluator;
 import lib.function.Function;
 import lib.function.PlottableFunction;
+import lib.parser.expression.ExpressionEvaluator;
 
 import java.awt.*;
 import java.awt.geom.*;

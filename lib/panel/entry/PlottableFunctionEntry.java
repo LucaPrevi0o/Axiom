@@ -17,7 +17,7 @@ import javax.swing.JTextField;
 
 import lib.function.PlottableFunction;
 
-public class PlottableFunctionEntry extends FunctionEntry {
+public abstract class PlottableFunctionEntry<T extends PlottableFunction> extends FunctionEntry<T> {
 
     private JCheckBox visibilityCheckBox;
     private JPanel colorIndicator;
@@ -27,7 +27,7 @@ public class PlottableFunctionEntry extends FunctionEntry {
      * 
      * @param function The PlottableFunction object
      */
-    public PlottableFunctionEntry(PlottableFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+    public PlottableFunctionEntry(T function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
 
         super(function, onVisibilityChanged, onRemove, onEdit);
     }
@@ -43,9 +43,9 @@ public class PlottableFunctionEntry extends FunctionEntry {
 
         // Visibility checkbox
         visibilityCheckBox = new JCheckBox();
-        visibilityCheckBox.setSelected(((PlottableFunction)function).isVisible());
+        visibilityCheckBox.setSelected(function.isVisible());
         visibilityCheckBox.addActionListener(e -> {
-            ((PlottableFunction)function).setVisible(visibilityCheckBox.isSelected());
+            function.setVisible(visibilityCheckBox.isSelected());
             if (onVisibilityChanged != null) { onVisibilityChanged.run(); }
         });
         
@@ -61,7 +61,7 @@ public class PlottableFunctionEntry extends FunctionEntry {
         
         // Color indicator
         colorIndicator = new JPanel();
-        colorIndicator.setBackground(((PlottableFunction)function).getColor());
+        colorIndicator.setBackground(function.getColor());
         colorIndicator.setPreferredSize(new Dimension(20, 20));
         colorIndicator.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         colorIndicator.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
@@ -72,11 +72,11 @@ public class PlottableFunctionEntry extends FunctionEntry {
                 Color newColor = JColorChooser.showDialog(
                     PlottableFunctionEntry.this,
                     "Choose Function Color",
-                    ((PlottableFunction)function).getColor()
+                    function.getColor()
                 );
                 if (newColor != null) {
 
-                    ((PlottableFunction)function).setColor(newColor);
+                    function.setColor(newColor);
                     colorIndicator.setBackground(newColor);
                     if (onVisibilityChanged != null) { onVisibilityChanged.run(); }
                 }
@@ -149,7 +149,7 @@ public class PlottableFunctionEntry extends FunctionEntry {
      * 
      * @return The PlottableFunction
      */
-    public PlottableFunction getFunction() { return (PlottableFunction)function; }
+    public PlottableFunction getFunction() { return function; }
 
     /**
      * Get the visibility checkbox
