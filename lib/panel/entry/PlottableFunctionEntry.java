@@ -10,6 +10,7 @@ import java.awt.Insets;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -29,8 +30,6 @@ public class PlottableFunctionEntry extends FunctionEntry {
     public PlottableFunctionEntry(PlottableFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
 
         super(function, onVisibilityChanged, onRemove, onEdit);
-        this.visibilityCheckBox = new JCheckBox();
-        this.colorIndicator = new JPanel();
     }
     
     /**
@@ -65,6 +64,24 @@ public class PlottableFunctionEntry extends FunctionEntry {
         colorIndicator.setBackground(((PlottableFunction)function).getColor());
         colorIndicator.setPreferredSize(new Dimension(20, 20));
         colorIndicator.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        colorIndicator.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        colorIndicator.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+
+                Color newColor = JColorChooser.showDialog(
+                    PlottableFunctionEntry.this,
+                    "Choose Function Color",
+                    ((PlottableFunction)function).getColor()
+                );
+                if (newColor != null) {
+
+                    ((PlottableFunction)function).setColor(newColor);
+                    colorIndicator.setBackground(newColor);
+                    if (onVisibilityChanged != null) { onVisibilityChanged.run(); }
+                }
+            }
+        });
         
         // Remove button
         removeButton = new JButton("×");
