@@ -15,19 +15,55 @@ parse_args() {
 
 compile() {
     echo "Compiling ${NAME}.java into ${FOLDER}/..."
-    javac -d ${FOLDER} ${NAME}.java
+    if [ ! -f "${NAME}.java" ]; then
+        echo "Error: ${NAME}.java not found!"
+        exit 1
+    fi
+    if ! javac -d ${FOLDER} ${NAME}.java; then
+        echo "Error: Compilation failed!"
+        exit 1
+    fi
+    echo "Compilation successful."
 }
 
 run() { 
-    echo "Running ${NAME} from ${FOLDER}/..."
-    java -cp ${FOLDER} ${NAME}
+    # Check if -j flag is set to run JAR
+    if [ "$USE_JAR" = true ]; then
+        echo "Running ${NAME}.jar..."
+        if [ ! -f "./${NAME}.jar" ]; then
+            echo "Error: ${NAME}.jar not found!"
+            exit 1
+        fi
+        if ! java -jar ./${NAME}.jar; then
+            echo "Error: Execution failed!"
+            exit 1
+        fi
+    else
+        echo "Running ${NAME} from ${FOLDER}/..."
+        if [ ! -d "${FOLDER}" ]; then
+            echo "Error: ${FOLDER} directory not found!"
+            exit 1
+        fi
+        if ! java -cp ${FOLDER} ${NAME}; then
+            echo "Error: Execution failed!"
+            exit 1
+        fi
+    fi
 }
 
 clean() { 
     echo "Cleaning ${FOLDER}/..."
-    find ${FOLDER} -name "*.class" -type f -delete
-    rm -rf ${FOLDER}/lib
-    echo "Cleaned up compiled class files."
+    if [ ! -d "${FOLDER}" ]; then
+        echo "Warning: ${FOLDER} directory not found. Nothing to clean."
+    else
+        find ${FOLDER} -name "*.class" -type f -delete
+        rm -rf ${FOLDER}/lib
+        echo "Cleaned up compiled class files."
+    fi
+    if [ -f "./${NAME}.jar" ]; then
+        rm ./${NAME}.jar
+        echo "Removed ${NAME}.jar."
+    fi
 }
 
 all() { 
@@ -35,8 +71,21 @@ all() {
     run
 }
 
+compile-jar() {
+    echo "Creating JAR file ${NAME}.jar..."
+    if [ ! -d "${FOLDER}" ]; then
+        echo "Error: ${FOLDER} directory not found! Compile first."
+        exit 1
+    fi
+    if ! jar cfe ${NAME}.jar ${NAME} -C ${FOLDER} .; then
+        echo "Error: JAR creation failed!"
+        exit 1
+    fi
+    echo "JAR file ${NAME}.jar created successfully."
+}
+
 help() { 
-    echo "Usage: ${0##*/} [command] [file] [folder]"
+    echo "Usage: ${0##*/} [command] [-j] [file] [folder]"
     echo ""
     echo "Commands:"
     echo "  compile   Compile the Java source files"
@@ -44,6 +93,10 @@ help() {
     echo "  clean     Remove compiled class files"
     echo "  all       Compile and run the Java program"
     echo "  help      Display this help message"
+    echo "  jar       Create a JAR file from the compiled classes"
+    echo ""
+    echo "Options:"
+    echo "  -j        Run the JAR file instead of compiled classes (use with 'run' command)"
     echo ""
     echo "Optional Arguments:"
     echo "  file      Name of the main Java file (default: Axiom)"
@@ -59,6 +112,13 @@ else
     COMMAND=$1
     shift  # Remove first argument (command)
     
+    # Check for -j flag
+    USE_JAR=false
+    if [ "$1" = "-j" ]; then
+        USE_JAR=true
+        shift  # Remove -j flag
+    fi
+    
     # Parse optional file and folder arguments
     parse_args "$@"
     
@@ -68,6 +128,7 @@ else
         clean) clean ;;
         all) all ;;
         help) help ;;
+        jar) compile-jar ;;
         *) echo "Unknown command: $COMMAND" ; help ;;
     esac
 fi
