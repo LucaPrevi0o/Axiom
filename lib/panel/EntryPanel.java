@@ -116,6 +116,9 @@ public class EntryPanel extends JPanel {
             case CONSTANT:
                 entryManager.addConstantFromParseResult(parseResult);
                 break;
+            case POINT:
+                entryManager.addPointFromParseResult(parseResult);
+                break;
             default:
                 JOptionPane.showMessageDialog(this, 
                     "Unsupported input type", 

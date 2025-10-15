@@ -81,7 +81,8 @@ public class InputParser {
         EXPRESSION,         // Expression (e.g., "x^2", "sin(x)+2*x")
         RANGE,              // Range definition (e.g., "c=[1:5]")
         NUMBER_SET,         // Number set definition (e.g., "s={1,2,3}")
-        CONSTANT            // Constant/parameter definition (e.g., "k=[[1:5]]")
+        CONSTANT,           // Constant/parameter definition (e.g., "k=[[1:5]]")
+        POINT               // Single point definition (e.g. "P=(2,3)")
     }
     
     // Regex patterns
@@ -116,7 +117,15 @@ public class InputParser {
     // Unnamed constant: just "[[1:5]]" or "[[-2.5:10.3]]"
     private static final Pattern UNNAMED_CONSTANT_PATTERN = 
         Pattern.compile("^\\[\\[\\s*(-?\\d+(?:\\.\\d+)?)\\s*:\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\]\\]$");
-    
+
+    // Named point: "P=(2,3)", "point1=(1,2)"
+    private static final Pattern NAMED_POINT_PATTERN = 
+        Pattern.compile("^([a-zA-Z]\\w*)\\s*=\\s*\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)$");
+
+    // Unnamed point: just "(2,3)"
+    private static final Pattern UNNAMED_POINT_PATTERN = 
+        Pattern.compile("^\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)$");
+
     /**
      * Parse user input and determine what type of entity should be created
      * @param input The input string to parse
@@ -129,6 +138,10 @@ public class InputParser {
             throw new IllegalArgumentException("Input cannot be null or empty");
         
         String trimmedInput = input.trim();
+
+        // Try to parse as a point definition
+        ParseResult pointResult = parsePointDefinition(trimmedInput);
+        if (pointResult != null) return pointResult;
         
         // Try to parse as a constant definition (check first - most specific with [[]])
         ParseResult constantResult = parseConstantDefinition(trimmedInput);
@@ -263,6 +276,37 @@ public class InputParser {
             String max = unnamedMatcher.group(2);
             String constantExpression = "[[" + min + ":" + max + "]]";
             return new ParseResult(InputType.CONSTANT, null, constantExpression);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Parse point definition to extract name and coordinates
+     * Supports formats:
+     * - Named: "P=(2,3)" or "point1=(1,2)"
+     * - Unnamed: "(2,3)"
+     * @param input The input string
+     * @return ParseResult if it matches point pattern, null otherwise
+     */
+    private static ParseResult parsePointDefinition(String input) {
+
+        // Try named point first
+        Matcher namedMatcher = NAMED_POINT_PATTERN.matcher(input);
+        Matcher unnamedMatcher = UNNAMED_POINT_PATTERN.matcher(input);
+        if (namedMatcher.matches()) {
+
+            String name = namedMatcher.group(1);
+            String x = namedMatcher.group(2);
+            String y = namedMatcher.group(3);
+            String pointExpression = "(" + x + "," + y + ")";
+            return new ParseResult(InputType.POINT, name, pointExpression);
+        } else if (unnamedMatcher.matches()) {
+
+            String x = unnamedMatcher.group(1);
+            String y = unnamedMatcher.group(2);
+            String pointExpression = "(" + x + "," + y + ")";
+            return new ParseResult(InputType.POINT, null, pointExpression);
         }
         
         return null;

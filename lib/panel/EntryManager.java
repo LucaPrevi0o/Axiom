@@ -311,4 +311,38 @@ public class EntryManager {
         // Refresh UI
         refreshPanels();
     }
+
+    /** Add a PointFunction from a ParseResult
+     * @param parseResult The parsed result containing function information
+     */
+    public void addPointFromParseResult(ParseResult parseResult) {
+
+        String name = parseResult.getName();
+        String expression = parseResult.getExpression();
+
+        // Validate expression
+        if (!validateInput(expression)) return;
+
+        // Create Function object using factory
+        Color randomColor = generateRandomColor();
+        PointFunction function = parseResult.hasName()
+            ? new PointFunction(expression, randomColor, name)
+            : new PointFunction(expression, randomColor);
+
+        plotPanel.addFunction(function);
+
+        // Create and add UI entry using factory
+        final PlottableFunctionEntry<?>[] entryHolder = new PlottableFunctionEntry<?>[1];
+        entryHolder[0] = new PointFunctionEntry(
+            function,
+            this::onVisibilityChanged,
+            () -> onFunctionRemove(function, entryHolder[0]),
+            () -> onFunctionEdit(function, entryHolder[0])
+        );
+        functionItems.add(entryHolder[0]);
+        addEntryToPanel(entryHolder[0]);
+
+        // Refresh UI
+        refreshPanels();
+    }
 }
