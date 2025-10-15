@@ -143,6 +143,18 @@ public abstract class PlottableFunctionEntry<T extends PlottableFunction> extend
         add(topPanel, BorderLayout.NORTH);
         add(bottomPanel, BorderLayout.CENTER);
     }
+    
+    /**
+     * Update the expression label to reflect the current function expression
+     */
+    @Override
+    public void updateExpression() {
+
+        expressionLabel.setText((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
+        inputField.setText(function.getExpression());
+        revalidate();
+        repaint();
+    }
 
     /**
      * Get the PlottableFunction object
