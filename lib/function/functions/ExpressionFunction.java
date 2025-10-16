@@ -2,6 +2,7 @@ package lib.function.functions;
 
 import java.awt.Color;
 import lib.function.PlottableFunction;
+import lib.function.domains.IntervalDomain;
 
 public class ExpressionFunction extends PlottableFunction {
     
@@ -15,6 +16,7 @@ public class ExpressionFunction extends PlottableFunction {
     public ExpressionFunction(String expression, Color color, boolean visible, String name) {
 
         super(expression, color, visible, name);
+        this.setDomain(new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
     }
 
     /**

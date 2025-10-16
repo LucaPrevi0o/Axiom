@@ -13,6 +13,7 @@ public class ExpressionFunctionEntry extends PlottableFunctionEntry<ExpressionFu
      * @param onEdit Callback when edit button is clicked
      */
     public ExpressionFunctionEntry(ExpressionFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+
         super(function, onVisibilityChanged, onRemove, onEdit);
     }
 }

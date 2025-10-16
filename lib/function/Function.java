@@ -8,6 +8,7 @@ public abstract class Function {
 
     private String expression;
     private String name;
+    private Domain domain;
     
     /**
      * Constructor with expression only
@@ -51,6 +52,18 @@ public abstract class Function {
      */
     public void setName(String name) { this.name = name; }
 
+    /**
+     * Get the function domain
+     * @return The domain
+     */
+    public Domain getDomain() { return domain; }
+
+    /**
+     * Set the function domain
+     * @param domain The new domain
+     */
+    public void setDomain(Domain domain) { this.domain = domain; }
+
     @Override
-    public String toString() { return name + "(x) = " + expression; }
+    public String toString() { return name + " = " + expression; }
 }

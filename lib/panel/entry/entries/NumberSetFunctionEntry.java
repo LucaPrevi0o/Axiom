@@ -13,6 +13,7 @@ public class NumberSetFunctionEntry extends FunctionEntry<NumberSetFunction> {
      * @param onEdit Callback when edit button is clicked
      */
     public NumberSetFunctionEntry(NumberSetFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+
         super(function, onVisibilityChanged, onRemove, onEdit);
     }
     

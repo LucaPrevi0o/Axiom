@@ -1,6 +1,7 @@
 package lib.function.functions;
 
 import lib.function.Function;
+import lib.function.domains.IntervalDomain;
 
 /**
  * Represents a constant/parameter function with a single numeric value.
@@ -33,6 +34,9 @@ public class ConstantFunction extends Function {
         
         // Clamp value to range
         this.value = Math.max(minValue, Math.min(maxValue, value));
+
+        // Ensure the function has a valid domain
+        this.setDomain(new IntervalDomain(minValue, maxValue));
         
         // Update expression to reflect the current value
         updateExpression();

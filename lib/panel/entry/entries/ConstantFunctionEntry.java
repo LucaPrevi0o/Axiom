@@ -35,6 +35,7 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
      * @param onEdit Callback when edit button is clicked
      */
     public ConstantFunctionEntry(ConstantFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
+
         super(function, onVisibilityChanged, onRemove, onEdit);
         
         // Override the size set by parent - constants need more height for the slider
@@ -79,30 +80,27 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
         valueSlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
+
                 double newValue = sliderToValue(valueSlider.getValue());
                 function.setValue(newValue);
                 valueLabel.setText(formatValue(function.getValue()));
                 inputField.setText(String.valueOf(function.getValue()));
                 
                 // Trigger callback if provided (to refresh plots, etc.)
-                if (onVisibilityChanged != null) {
-                    onVisibilityChanged.run();
-                }
+                if (onVisibilityChanged != null) onVisibilityChanged.run();
             }
         });
         
         // Override edit button behavior for constant functions
         // Remove existing listeners first
-        for (var listener : editButton.getActionListeners()) {
-            editButton.removeActionListener(listener);
-        }
+        for (var listener : editButton.getActionListeners()) editButton.removeActionListener(listener);
         
         // Add custom edit button listener
         editButton.addActionListener(e -> {
             boolean isEditing = inputField.isVisible();
             
             if (isEditing) {
-                
+
                 // Save mode: parse input and update value/range
                 try {
 
@@ -151,6 +149,7 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
                 
                 editButton.setText("Edit");
             } else {
+
                 // Edit mode: show the full range expression [[min:max]]
                 inputField.setText(formatRangeExpression());
                 editButton.setText("Save");
