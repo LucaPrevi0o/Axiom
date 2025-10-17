@@ -14,9 +14,7 @@ public class ExpressionFunction extends PlottableFunction {
      * @param name The function name/label
      */
     public ExpressionFunction(String expression, Color color, boolean visible, String name) {
-
         super(expression, color, visible, name);
-        this.setDomain(new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY));
     }
 
     /**
@@ -37,5 +35,11 @@ public class ExpressionFunction extends PlottableFunction {
     public ExpressionFunction(String expression, Color color) {
         this(expression, color, true, null);
     }
-    
+
+    /**
+     * Parse the expression to determine the domain
+     * @return The parsed domain
+     */   
+    @Override
+    protected IntervalDomain parseExpression() { return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY); }
 }

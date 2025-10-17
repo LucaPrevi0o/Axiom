@@ -121,8 +121,8 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
                         if (newMin >= newMax) throw new IllegalArgumentException("Min must be less than max");
                     
                         // Update the function's range
-                        function.setMinValue(newMin);
-                        function.setMaxValue(newMax);
+                        function.getDomain().setMinBound(newMin);
+                        function.getDomain().setMaxBound(newMax);
                         
                         // Update slider and labels
                         valueSlider.setValue(valueToSlider(function.getValue()));
@@ -133,7 +133,7 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
                         // It's just a value - update the constant value
                         double newValue = Double.parseDouble(input);
                         // Clamp value to valid range
-                        newValue = Math.max(function.getMinValue(), Math.min(function.getMaxValue(), newValue));
+                        newValue = Math.max(function.getDomain().getMinBound(), Math.min(function.getDomain().getMaxBound(), newValue));
                         function.setValue(newValue);
                         valueSlider.setValue(valueToSlider(function.getValue()));
                     }
@@ -225,8 +225,8 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
      */
     private int valueToSlider(double value) {
 
-        double min = function.getMinValue();
-        double max = function.getMaxValue();
+        double min = function.getDomain().getMinBound();
+        double max = function.getDomain().getMaxBound();
         double normalized = (value - min) / (max - min);
         return (int) Math.round(normalized * SLIDER_PRECISION);
     }
@@ -238,8 +238,8 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
      */
     private double sliderToValue(int sliderValue) {
 
-        double min = function.getMinValue();
-        double max = function.getMaxValue();
+        double min = function.getDomain().getMinBound();
+        double max = function.getDomain().getMaxBound();
         double normalized = (double) sliderValue / SLIDER_PRECISION;
         return min + normalized * (max - min);
     }
@@ -262,7 +262,7 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
      * Format the range expression for editing
      * @return Range expression in format "[[min:max]]"
      */
-    private String formatRangeExpression() { return "[[" + function.getMinValue() + ":" + function.getMaxValue() + "]]"; }
+    private String formatRangeExpression() { return "[[" + function.getDomain().getMinBound() + ":" + function.getDomain().getMaxBound() + "]]"; }
     
     /**
      * Get the current function

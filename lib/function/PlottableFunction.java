@@ -2,7 +2,7 @@ package lib.function;
 
 import java.awt.Color;
 
-public class PlottableFunction extends Function {
+public abstract class PlottableFunction extends Function {
     
     private Color color;
     private boolean visible;

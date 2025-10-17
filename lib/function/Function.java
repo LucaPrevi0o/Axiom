@@ -6,9 +6,9 @@ package lib.function;
  */
 public abstract class Function {
 
-    private String expression;
-    private String name;
-    private Domain domain;
+    protected String expression;
+    protected String name;
+    protected Domain domain;
     
     /**
      * Constructor with expression only
@@ -26,6 +26,7 @@ public abstract class Function {
 
         this.expression = expression;
         this.name = name;
+        this.domain = parseExpression();
     }
     
     /**
@@ -63,6 +64,12 @@ public abstract class Function {
      * @param domain The new domain
      */
     public void setDomain(Domain domain) { this.domain = domain; }
+
+    /**
+     * Parse the expression to determine the domain
+     * @return The parsed domain
+     */
+    protected abstract Domain parseExpression();
 
     @Override
     public String toString() { return name + " = " + expression; }

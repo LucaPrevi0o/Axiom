@@ -45,4 +45,29 @@ public class DiscreteDomain extends Domain {
      */
     @Override
     public double getMaxBound() { return values[values.length - 1]; }
+
+    /**
+     * Set the minimum bound of the domain (no-op for discrete domain)
+     * @param min The new minimum bound
+     */
+    @Override
+    public void setMinBound(double min) {}
+
+    @Override
+    public void setMaxBound(double max) {}
+
+    @Override
+    public double[] getSamplePoints(double viewMin, double viewMax, int numSamples) {
+
+        if (values == null || values.length == 0) return new double[0];
+
+        java.util.List<Double> list = new java.util.ArrayList<>();
+        for (double v : values) {
+            if (v >= viewMin && v <= viewMax) list.add(v);
+        }
+
+        double[] out = new double[list.size()];
+        for (int i = 0; i < list.size(); i++) out[i] = list.get(i);
+        return out;
+    }
 }
