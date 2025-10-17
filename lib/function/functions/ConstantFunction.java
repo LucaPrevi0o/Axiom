@@ -71,14 +71,14 @@ public class ConstantFunction extends Function {
             if (parts.length != 2) throw new IllegalArgumentException("Invalid constant range format: " + expression);
             try {
 
-                this.domain.setMinBound(Double.parseDouble(parts[0].trim()));
-                this.domain.setMaxBound(Double.parseDouble(parts[1].trim()));
+                double minBound = Double.parseDouble(parts[0].trim());
+                double maxBound = Double.parseDouble(parts[1].trim());
 
-                if (this.domain.getMinBound() >= this.domain.getMaxBound()) throw new IllegalArgumentException("minValue must be less than maxValue");
+                if (minBound >= maxBound) throw new IllegalArgumentException("minValue must be less than maxValue");
 
                 // Set value to midpoint
-                this.value = (this.domain.getMinBound() + this.domain.getMaxBound()) / 2.0;
-                return new IntervalDomain(this.domain.getMinBound(), this.domain.getMaxBound());
+                this.value = (minBound + maxBound) / 2.0;
+                return new IntervalDomain(minBound, maxBound);
             } catch (NumberFormatException e) { throw new IllegalArgumentException("Invalid number format in constant range: " + expression); }
         } else throw new IllegalArgumentException("Expression must be in the form [[min:max]] for ConstantFunction");
     }

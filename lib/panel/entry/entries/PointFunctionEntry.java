@@ -15,5 +15,10 @@ public class PointFunctionEntry extends PlottableFunctionEntry<PointFunction> {
     public PointFunctionEntry(PointFunction function, Runnable onVisibilityChanged, Runnable onRemove, Runnable onEdit) {
         super(function, onVisibilityChanged, onRemove, onEdit);
     }
-    
+
+    /**
+     * Update the expression label to reflect the current function expression
+     */
+    @Override
+    protected String getExpressionLabel() { return (function.getName() == null ? "" : function.getName() + " = ") + function.getExpression(); }
 }

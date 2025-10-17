@@ -50,7 +50,7 @@ public abstract class PlottableFunctionEntry<T extends PlottableFunction> extend
         });
         
         // Expression label
-        expressionLabel = new JLabel((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
+        expressionLabel = new JLabel(getExpressionLabel());
         expressionLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
 
         // Input field for editing expression
@@ -143,18 +143,6 @@ public abstract class PlottableFunctionEntry<T extends PlottableFunction> extend
         add(topPanel, BorderLayout.NORTH);
         add(bottomPanel, BorderLayout.CENTER);
     }
-    
-    /**
-     * Update the expression label to reflect the current function expression
-     */
-    @Override
-    public void updateExpression() {
-
-        expressionLabel.setText((function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression());
-        inputField.setText(function.getExpression());
-        revalidate();
-        repaint();
-    }
 
     /**
      * Get the PlottableFunction object
@@ -176,4 +164,10 @@ public abstract class PlottableFunctionEntry<T extends PlottableFunction> extend
      * @return The JPanel showing the color
      */
     public JPanel getColorIndicator() { return colorIndicator; }
+
+    /**
+     * Update the expression label to reflect the current function expression
+     */
+    @Override
+    protected String getExpressionLabel() { return (function.getName() == null ? "" : function.getName() + "(x) = ") + function.getExpression(); }
 }
