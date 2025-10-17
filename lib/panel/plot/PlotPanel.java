@@ -3,6 +3,8 @@ import javax.swing.*;
 
 import lib.function.Function;
 import lib.function.PlottableFunction;
+import lib.function.domains.DiscreteDomain;
+import lib.function.functions.PointFunction;
 import lib.parser.expression.ExpressionEvaluator;
 
 import java.awt.*;
@@ -151,7 +153,7 @@ public class PlotPanel extends JPanel {
     }
 
     /**
-     * Draw the function on the graph
+     * Draw all functions on the graph
      * 
      * @param g2 The {@link Graphics2D} object
      */
@@ -162,10 +164,17 @@ public class PlotPanel extends JPanel {
         for (PlottableFunction function : functions) {
 
             if (!function.isVisible()) continue;
-            
             g2.setColor(function.getColor());
-            Path2D path = computeFunctionPath(function);
-            g2.draw(path);
+            if (function.getDomain() instanceof DiscreteDomain) {
+
+                Point2D[] points = computeFunctionPoints(function);
+                int pointSize = 10;
+                for (Point2D point : points) g2.fill(new Ellipse2D.Double(point.getX() - pointSize / 2, point.getY() - pointSize / 2, pointSize, pointSize));
+            } else {
+            
+                Path2D path = computeFunctionPath(function);
+                g2.draw(path);
+            }
         }
     }
     
@@ -175,34 +184,47 @@ public class PlotPanel extends JPanel {
      * @param function The Function to compute points for
      * @return A Path2D representing the function curve
      */
-    private Path2D computeFunctionPath(Function function) {
-        
+    private Path2D computeFunctionPath(PlottableFunction function) {
+
         Path2D path = new Path2D.Double();
         boolean firstPoint = true;
 
-        // Sample points across the screen
         for (int screenX = 0; screenX < getWidth(); screenX++) {
 
             double x = screenToX(screenX);
             try {
 
-                // Evaluate the function using ExpressionEvaluator with constants
                 double y = ExpressionEvaluator.evaluate(function.getExpression(), x, constants);
-
-                // Check if y is within bounds
                 if (!Double.isNaN(y) && !Double.isInfinite(y)) {
 
                     int screenY = yToScreen(y);
-                    if (firstPoint) {
-
+                    if (firstPoint) { 
+                        
                         path.moveTo(screenX, screenY);
-                        firstPoint = false;
+                        firstPoint = false; 
                     } else path.lineTo(screenX, screenY);
                 } else firstPoint = true;
             } catch (Exception e) { firstPoint = true; }
         }
-        
         return path;
+    }
+
+    /**
+     * Compute the screen points for a function defined on a discrete domain
+     * 
+     * @param function The Function to compute points for
+     * @return An array of Point2D representing the screen points
+     */
+    private Point2D[] computeFunctionPoints(PlottableFunction function) {
+
+        Point2D[] points = new Point2D[((DiscreteDomain)function.getDomain()).getValues().length];
+        for (int i = 0; i < points.length; i++) {
+
+            double x = ((DiscreteDomain)function.getDomain()).getValues()[i];
+            double y = function instanceof PointFunction ? ((PointFunction)function).getYValue() : 0;
+            points[i] = new Point2D.Double(xToScreen(x), yToScreen(y));
+        }
+        return points;
     }
 
     // Coordinate conversion methods
@@ -216,10 +238,6 @@ public class PlotPanel extends JPanel {
 
     private double screenToX(int screenX) {
         return viewport.getMinX() + (screenX * (viewport.getMaxX() - viewport.getMinX()) / getWidth());
-    }
-
-    private double screenToY(int screenY) {
-        return viewport.getMaxY() - (screenY * (viewport.getMaxY() - viewport.getMinY()) / getHeight());
     }
     
     /**
