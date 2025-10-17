@@ -1,6 +1,50 @@
 package lib.function;
 
+import lib.function.domains.IntervalDomain;
+
 public abstract class Domain {
+    
+    /**
+     * Parse a function expression to determine its domain
+     * @param expression The function expression as a string
+     * @return The parsed domain
+     */
+    public static Domain parse(String expression) {
+
+        String trimmed = expression.trim().toLowerCase();
+        switch (trimmed) {
+            case "sin":
+            case "cos":
+            case "tan":
+            case "csc":
+            case "sec":
+            case "cot":
+            case "sinh":
+            case "cosh":
+            case "tanh":
+            case "csch":
+            case "sech":
+            case "coth":
+                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+            case "arcsin":
+            case "arccos":
+            case "arccsc":
+            case "arcsec":
+            case "arccot":
+            case "arsinh":
+                return new IntervalDomain(-1, 1);
+            case "arctan":
+            case "arcoth":
+            case "arcosh":
+                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+            case "log":
+            case "ln":
+            case "sqrt":
+                return new IntervalDomain(0, Double.POSITIVE_INFINITY);
+            default:
+                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        }
+    }
     
     /**
      * Check if x is in the domain

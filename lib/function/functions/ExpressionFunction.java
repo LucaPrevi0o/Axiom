@@ -1,6 +1,8 @@
 package lib.function.functions;
 
 import java.awt.Color;
+
+import lib.function.Domain;
 import lib.function.PlottableFunction;
 import lib.function.domains.IntervalDomain;
 
@@ -41,5 +43,5 @@ public class ExpressionFunction extends PlottableFunction {
      * @return The parsed domain
      */   
     @Override
-    protected IntervalDomain parseExpression() { return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY); }
+    protected IntervalDomain parseExpression() { return (IntervalDomain)Domain.parse(this.expression); }
 }
