@@ -91,55 +91,38 @@ public class ConstantFunctionEntry extends FunctionEntry<ConstantFunction> {
             }
         });
         
-        // Override edit button behavior for constant functions
-        // Remove existing listeners first
         for (var listener : editButton.getActionListeners()) editButton.removeActionListener(listener);
         
         // Add custom edit button listener
         editButton.addActionListener(e -> {
+
             boolean isEditing = inputField.isVisible();
-            
             if (isEditing) {
 
                 // Save mode: parse input and update value/range
                 try {
 
                     String input = inputField.getText().trim();
-                    
-                    // Check if it's a range expression [[min:max]]
-                    if (input.startsWith("[[") && input.endsWith("]]")) {
 
-                        // Parse the range
-                        String rangeContent = input.substring(2, input.length() - 2).trim();
-                        String[] parts = rangeContent.split(":");
-                        
-                        if (parts.length != 2) throw new IllegalArgumentException("Invalid range format");
-                        
-                        double newMin = Double.parseDouble(parts[0].trim());
-                        double newMax = Double.parseDouble(parts[1].trim());
-                        
-                        if (newMin >= newMax) throw new IllegalArgumentException("Min must be less than max");
+                    // Parse the range
+                    String rangeContent = input.substring(2, input.length() - 2).trim();
+                    String[] parts = rangeContent.split(":");
                     
-                        // Update the function's range
-                        function.getDomain().setMinBound(newMin);
-                        function.getDomain().setMaxBound(newMax);
-                        
-                        // Update slider and labels
-                        valueSlider.setValue(valueToSlider(function.getValue()));
-                        rangeLabel.setText(function.getRangeString());
-                        
-                    } else {
-
-                        // It's just a value - update the constant value
-                        double newValue = Double.parseDouble(input);
-                        // Clamp value to valid range
-                        newValue = Math.max(function.getDomain().getMinBound(), Math.min(function.getDomain().getMaxBound(), newValue));
-                        function.setValue(newValue);
-                        valueSlider.setValue(valueToSlider(function.getValue()));
-                    }
+                    if (parts.length != 2) throw new IllegalArgumentException("Invalid range format");
                     
+                    double newMin = Double.parseDouble(parts[0].trim());
+                    double newMax = Double.parseDouble(parts[1].trim());
+                    
+                    if (newMin >= newMax) throw new IllegalArgumentException("Min must be less than max");
+                
+                    // Update the function's range
+                    function.getDomain().setMinBound(newMin);
+                    function.getDomain().setMaxBound(newMax);
+                    
+                    // Update slider and labels
+                    valueSlider.setValue(valueToSlider(function.getValue()));
+                    rangeLabel.setText(function.getRangeString());
                     valueLabel.setText(formatValue(function.getValue()));
-                    
                     if (onEdit != null) onEdit.run();
                 } catch (IllegalArgumentException ex) {
 
