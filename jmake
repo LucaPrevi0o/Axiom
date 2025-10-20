@@ -1,134 +1,282 @@
-NAME="Axiom"
-FOLDER="java"
+#!/bin/bash
 
-# Parse optional arguments for file and folder
-parse_args() {
-    # If second argument is provided, use it as NAME
-    if [ -n "$1" ]; then
-        NAME="$1"
-    fi
-    # If third argument is provided, use it as FOLDER
-    if [ -n "$2" ]; then
-        FOLDER="$2"
-    fi
+# Default configuration
+DEFAULT_NAME="Axiom"
+DEFAULT_FOLDER="java"
+
+# Current configuration (will be modified by options)
+NAME="$DEFAULT_NAME"
+FOLDER="$DEFAULT_FOLDER"
+USE_JAR=false
+
+# Parse command line options
+parse_options() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -j)
+                USE_JAR=true
+                shift
+                ;;
+            -n)
+                if [ -z "$2" ]; then
+                    echo "Error: -n option requires a name argument"
+                    exit 1
+                fi
+                NAME="$2"
+                shift 2
+                ;;
+            -f)
+                if [ -z "$2" ]; then
+                    echo "Error: -f option requires a folder argument"
+                    exit 1
+                fi
+                FOLDER="$2"
+                shift 2
+                ;;
+            *)
+                # Not an option, return remaining args
+                break
+                ;;
+        esac
+    done
+}
+
+# Validate options for specific commands
+validate_options() {
+    local command="$1"
+    
+    case "$command" in
+        help)
+            if [ "$USE_JAR" = true ] || [ "$NAME" != "$DEFAULT_NAME" ] || [ "$FOLDER" != "$DEFAULT_FOLDER" ]; then
+                echo "Error: 'help' command does not accept any options"
+                exit 1
+            fi
+            ;;
+        clean)
+            if [ "$NAME" != "$DEFAULT_NAME" ]; then
+                echo "Error: 'clean' command does not accept -n option"
+                exit 1
+            fi
+            ;;
+    esac
 }
 
 compile() {
+    if [ "$USE_JAR" = true ]; then
+        compile_jar
+    else
+        compile_classes
+    fi
+}
+
+compile_classes() {
     echo "Compiling ${NAME}.java into ${FOLDER}/..."
+    
+    # Check if source file exists
     if [ ! -f "${NAME}.java" ]; then
         echo "Error: ${NAME}.java not found!"
         exit 1
     fi
-    if ! javac -d ${FOLDER} ${NAME}.java; then
+    
+    # Create output folder if it doesn't exist
+    if [ ! -d "${FOLDER}" ]; then
+        echo "Creating directory ${FOLDER}/..."
+        mkdir -p "${FOLDER}"
+    fi
+    
+    # Compile
+    if ! javac -d "${FOLDER}" "${NAME}.java"; then
         echo "Error: Compilation failed!"
         exit 1
     fi
+    
     echo "Compilation successful."
 }
 
-run() { 
-    # Check if -j flag is set to run JAR
-    if [ "$USE_JAR" = true ]; then
-        echo "Running ${NAME}.jar..."
-        if [ ! -f "./${NAME}.jar" ]; then
-            echo "Error: ${NAME}.jar not found!"
-            exit 1
-        fi
-        if ! java -jar ./${NAME}.jar; then
-            echo "Error: Execution failed!"
-            exit 1
-        fi
-    else
-        echo "Running ${NAME} from ${FOLDER}/..."
-        if [ ! -d "${FOLDER}" ]; then
-            echo "Error: ${FOLDER} directory not found!"
-            exit 1
-        fi
-        if ! java -cp ${FOLDER} ${NAME}; then
-            echo "Error: Execution failed!"
-            exit 1
-        fi
-    fi
-}
-
-clean() { 
-    echo "Cleaning ${FOLDER}/..."
-    if [ ! -d "${FOLDER}" ]; then
-        echo "Warning: ${FOLDER} directory not found. Nothing to clean."
-    else
-        find ${FOLDER} -name "*.class" -type f -delete
-        rm -rf ${FOLDER}/lib
-        echo "Cleaned up compiled class files."
-    fi
-    if [ -f "./${NAME}.jar" ]; then
-        rm ./${NAME}.jar
-        echo "Removed ${NAME}.jar."
-    fi
-}
-
-all() { 
-    compile
-    run
-}
-
-compile-jar() {
+compile_jar() {
     echo "Creating JAR file ${NAME}.jar..."
+    
+    # First compile classes if needed
+    if [ ! -d "${FOLDER}" ] || [ -z "$(find "${FOLDER}" -name '*.class' 2>/dev/null)" ]; then
+        echo "Compiling classes first..."
+        local original_jar_flag=$USE_JAR
+        USE_JAR=false
+        compile_classes
+        USE_JAR=$original_jar_flag
+    fi
+    
+    # Create JAR
+    if ! jar cfe "${NAME}.jar" "${NAME}" -C "${FOLDER}" .; then
+        echo "Error: JAR creation failed!"
+        exit 1
+    fi
+    
+    echo "JAR file ${NAME}.jar created successfully."
+}
+
+run() {
+    if [ "$USE_JAR" = true ]; then
+        run_jar
+    else
+        run_classes
+    fi
+}
+
+run_classes() {
+    echo "Running ${NAME} from ${FOLDER}/..."
+    
+    # Check if output folder exists
     if [ ! -d "${FOLDER}" ]; then
         echo "Error: ${FOLDER} directory not found! Compile first."
         exit 1
     fi
-    if ! jar cfe ${NAME}.jar ${NAME} -C ${FOLDER} .; then
-        echo "Error: JAR creation failed!"
+    
+    # Check if main class exists
+    if [ ! -f "${FOLDER}/${NAME}.class" ]; then
+        echo "Error: ${NAME}.class not found in ${FOLDER}/! Compile first."
         exit 1
     fi
-    echo "JAR file ${NAME}.jar created successfully."
-}
-
-help() { 
-    echo "Usage: ${0##*/} [command] [-j] [file] [folder]"
-    echo ""
-    echo "Commands:"
-    echo "  compile   Compile the Java source files"
-    echo "  run       Run the main Java class"
-    echo "  clean     Remove compiled class files"
-    echo "  all       Compile and run the Java program"
-    echo "  help      Display this help message"
-    echo "  jar       Create a JAR file from the compiled classes"
-    echo ""
-    echo "Options:"
-    echo "  -j        Run the JAR file instead of compiled classes (use with 'run' command)"
-    echo ""
-    echo "Optional Arguments:"
-    echo "  file      Name of the main Java file (default: Axiom)"
-    echo "  folder    Output folder for compiled classes (default: java)"
-}
-
-# Default action: compile
-if [ $# -eq 0 ]; then
-    compile
-else
-
-    # Parse the command
-    COMMAND=$1
-    shift  # Remove first argument (command)
     
-    # Check for -j flag
-    USE_JAR=false
-    if [ "$1" = "-j" ]; then
-        USE_JAR=true
-        shift  # Remove -j flag
+    # Run
+    if ! java -cp "${FOLDER}" "${NAME}"; then
+        echo "Error: Execution failed!"
+        exit 1
+    fi
+}
+
+run_jar() {
+    echo "Running ${NAME}.jar..."
+    
+    # Check if JAR exists
+    if [ ! -f "${NAME}.jar" ]; then
+        echo "Error: ${NAME}.jar not found! Compile JAR first."
+        exit 1
     fi
     
-    # Parse optional file and folder arguments
-    parse_args "$@"
+    # Run
+    if ! java -jar "${NAME}.jar"; then
+        echo "Error: Execution failed!"
+        exit 1
+    fi
+}
+
+clean() {
+    if [ "$USE_JAR" = true ]; then
+        clean_jar
+    else
+        clean_classes
+    fi
+}
+
+clean_classes() {
+    echo "Cleaning ${FOLDER}/..."
     
-    case $COMMAND in
+    if [ ! -d "${FOLDER}" ]; then
+        echo "Warning: ${FOLDER} directory not found. Nothing to clean."
+        return
+    fi
+    
+    # Remove all .class files
+    find "${FOLDER}" -name "*.class" -type f -delete
+    
+    # Remove lib subdirectories
+    if [ -d "${FOLDER}/lib" ]; then
+        rm -rf "${FOLDER}/lib"
+    fi
+    
+    # Remove main class subdirectories if they exist
+    local main_package_dir="${FOLDER}/${NAME}"
+    if [ -d "$main_package_dir" ]; then
+        rm -rf "$main_package_dir"
+    fi
+    
+    echo "Cleaned up compiled class files from ${FOLDER}/."
+}
+
+clean_jar() {
+    echo "Cleaning JAR file ${NAME}.jar..."
+    
+    if [ ! -f "${NAME}.jar" ]; then
+        echo "Warning: ${NAME}.jar not found. Nothing to clean."
+        return
+    fi
+    
+    rm "${NAME}.jar"
+    echo "Removed ${NAME}.jar."
+}
+
+all() {
+    compile
+    run
+}
+
+help() {
+    cat << EOF
+Usage: ${0##*/} [command] [options]
+
+Commands:
+  compile   Compile the Java source files
+  run       Run the main Java class
+  all       Compile and run the Java program (default if no command given)
+  clean     Remove compiled files
+  help      Display this help message
+
+Options:
+  -j        Use JAR file instead of class files
+            • compile -j: Creates JAR file
+            • run -j: Runs JAR file
+            • all -j: Compiles and runs JAR file
+            • clean -j: Removes JAR file only
+
+  -n NAME   Set main file/class name (default: ${DEFAULT_NAME})
+            • compile -n [NAME]: Compiles [NAME].java
+            • run -n [NAME]: Runs [NAME] class
+            • all -n [NAME]: Compiles and runs [NAME].java
+
+  -f FOLDER Set output folder name (default: ${DEFAULT_FOLDER})
+            • compile -f [FOLDER]: Compiles to [FOLDER]/
+            • run -f [FOLDER]: Runs from [FOLDER]/
+            • all -f [FOLDER]: Compiles and runs from [FOLDER]/
+            • clean -f [FOLDER]: Removes files from [FOLDER]/
+EOF
+}
+
+# Main script execution
+main() {
+
+    COMMAND="compile" # Set default command to "compile"
+    
+    # Check if first argument is a command or an option
+    case "$1" in
+        compile|run|all|clean|help) # Available commands
+            COMMAND="$1"
+            shift
+            ;;
+        -*)
+            ;; # First argument is an option, just use default command
+        *)
+            if [ -n "$1" ]; then # Check for unknown command (not empty)
+                echo "Error: Unknown command: $1"
+                echo "Run '${0##*/} help' for usage information"
+                exit 1
+            fi
+    esac
+    
+    # Parse options from remaining arguments
+    parse_options "$@"
+    
+    # Validate options for this command
+    validate_options "$COMMAND"
+    
+    # Execute command
+    case "$COMMAND" in
         compile) compile ;;
         run) run ;;
-        clean) clean ;;
         all) all ;;
+        clean) clean ;;
         help) help ;;
-        jar) compile-jar ;;
-        *) echo "Unknown command: $COMMAND" ; help ;;
     esac
-fi
+}
+
+# Run main function with all arguments
+main "$@"
