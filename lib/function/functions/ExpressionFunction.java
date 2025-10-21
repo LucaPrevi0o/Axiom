@@ -3,6 +3,7 @@ package lib.function.functions;
 import java.awt.Color;
 
 import lib.function.PlottableFunction;
+import lib.function.domain.Domain;
 import lib.function.domain.DomainAnalyzer;
 import lib.function.domain.domains.IntervalDomain;
 import lib.parser.expression.ExpressionNode;
@@ -45,7 +46,7 @@ public class ExpressionFunction extends PlottableFunction {
      * @return The parsed domain
      */   
     @Override
-    protected IntervalDomain parseExpression() {
+    protected Domain parseExpression() {
 
         try {
 

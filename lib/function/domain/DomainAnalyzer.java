@@ -2,236 +2,314 @@ package lib.function.domain;
 
 import lib.function.domain.domains.IntervalDomain;
 import lib.parser.expression.ExpressionNode;
-import lib.parser.expression.ExpressionNode.BinaryOpNode;
-import lib.parser.expression.ExpressionNode.FunctionNode;
-import lib.parser.expression.ExpressionNode.NumberNode;
-import lib.parser.expression.ExpressionNode.ParameterizedFunctionNode;
-import lib.parser.expression.ExpressionNode.UnaryOpNode;
+import lib.parser.expression.ExpressionNode.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Analyzes an expression AST to determine its mathematical domain.
  * Identifies restrictions like logarithm arguments must be positive,
- * square roots must be non-negative, etc.
+ * square roots must be non-negative, division by zero, etc.
  */
 public class DomainAnalyzer {
     
     /**
      * Analyze an expression node to determine its domain
      * @param node The root node of the expression AST
-     * @return The domain of the expression
+     * @return The domain of the expression (may be ComposedDomain for complex cases)
      */
-    public static IntervalDomain analyzeDomain(ExpressionNode node) {
-
+    public static Domain analyzeDomain(ExpressionNode node) {
         try {
-
-            DomainRestrictions restrictions = analyzeRestrictions(node);
-            return restrictions.toDomain();
+            List<DomainConstraint> constraints = new ArrayList<>();
+            collectConstraints(node, constraints);
+            
+            if (constraints.isEmpty()) {
+                // No restrictions - entire real line
+                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+            }
+            
+            // Merge all constraints into a single domain
+            return mergeConstraints(constraints);
         } catch (Exception e) {
-
-            // If analysis fails, assume unrestricted domain
+            // If analysis fails, return unrestricted domain
+            System.err.println("Domain analysis failed: " + e.getMessage());
             return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
         }
     }
     
     /**
-     * Recursively analyze restrictions in the expression tree
+     * Recursively collect all domain constraints from the expression tree
      * @param node The node to analyze
-     * @return Domain restrictions found in this subtree
+     * @param constraints List to accumulate constraints
      */
-    private static DomainRestrictions analyzeRestrictions(ExpressionNode node) {
-
-        DomainRestrictions restrictions = new DomainRestrictions();
-        
-        if (node instanceof NumberNode) return restrictions;
+    private static void collectConstraints(ExpressionNode node, List<DomainConstraint> constraints) {
+        if (node instanceof NumberNode) {
+            // Constants have no restrictions
+            return;
+        }
         
         if (node instanceof BinaryOpNode) {
-
             BinaryOpNode binOp = (BinaryOpNode) node;
-
+            
             // Analyze both operands
-            restrictions.merge(analyzeRestrictions(binOp.getLeft()));
-            restrictions.merge(analyzeRestrictions(binOp.getRight()));
+            collectConstraints(binOp.getLeft(), constraints);
+            collectConstraints(binOp.getRight(), constraints);
             
-            // Division: check for denominator = 0
-            // Note: This is complex for general case, skip for now
+            // Division: denominator cannot be zero
+            // This is complex for general case - would need to solve right = 0
+            // For now, we skip this (would require symbolic solver)
             
-            return restrictions;
+            return;
         }
-
+        
         if (node instanceof UnaryOpNode) {
-
             UnaryOpNode unaryOp = (UnaryOpNode) node;
-            return analyzeRestrictions(unaryOp.getOperand());
+            collectConstraints(unaryOp.getOperand(), constraints);
+            return;
         }
-
+        
         if (node instanceof FunctionNode) {
-
             FunctionNode funcNode = (FunctionNode) node;
             String funcName = funcNode.getFunctionName();
             
-            // Analyze the argument first
-            restrictions.merge(analyzeRestrictions(funcNode.getArgument()));
+            // First collect constraints from the argument
+            collectConstraints(funcNode.getArgument(), constraints);
             
-            // Add function-specific restrictions
+            // Then add function-specific constraints
+            // Note: These assume the argument is just 'x'
+            // For complex arguments, we'd need more sophisticated analysis
+            
             switch (funcName) {
                 case "ln":
                     // ln(x) requires x > 0
-                    restrictions.requirePositive();
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        0.0,
+                        false // not inclusive
+                    ));
                     break;
                     
                 case "sqrt":
                     // sqrt(x) requires x >= 0
-                    restrictions.requireNonNegative();
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        0.0,
+                        true // inclusive
+                    ));
                     break;
                     
                 case "asin":
                 case "acos":
                     // asin(x), acos(x) require -1 <= x <= 1
-                    restrictions.requireRange(-1.0, 1.0);
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        -1.0,
+                        true
+                    ));
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.LESS_THAN,
+                        1.0,
+                        true
+                    ));
                     break;
                     
                 case "acot":
-                    // acot(x) requires x != 0
-                    restrictions.excludePoint(0.0);
+                case "acsch":
+                    // acot(x), acsch(x) require x != 0
+                    // This creates two intervals: (-inf, 0) U (0, inf)
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.NOT_EQUAL,
+                        0.0,
+                        false
+                    ));
                     break;
                     
                 case "asec":
                 case "acsc":
                     // asec(x), acsc(x) require |x| >= 1
-                    restrictions.requireAbsGreaterOrEqual(1.0);
+                    // This creates two intervals: (-inf, -1] U [1, inf)
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.ABS_GREATER_OR_EQUAL,
+                        1.0,
+                        true
+                    ));
                     break;
                     
                 case "acosh":
                     // acosh(x) requires x >= 1
-                    restrictions.requireGreaterOrEqual(1.0);
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        1.0,
+                        true
+                    ));
                     break;
                     
                 case "atanh":
                     // atanh(x) requires -1 < x < 1
-                    restrictions.requireRange(-1.0, 1.0);
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        -1.0,
+                        false
+                    ));
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.LESS_THAN,
+                        1.0,
+                        false
+                    ));
                     break;
                     
                 case "acoth":
                     // acoth(x) requires |x| > 1
-                    restrictions.requireAbsGreater(1.0);
+                    // This creates two intervals: (-inf, -1) U (1, inf)
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.ABS_GREATER_OR_EQUAL,
+                        1.0,
+                        false
+                    ));
                     break;
                     
                 case "asech":
                     // asech(x) requires 0 < x <= 1
-                    restrictions.requireRange(0.0, 1.0);
-                    break;
-                    
-                case "acsch":
-                    // acsch(x) requires x != 0
-                    restrictions.excludePoint(0.0);
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        0.0,
+                        false
+                    ));
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.LESS_THAN,
+                        1.0,
+                        true
+                    ));
                     break;
             }
             
-            return restrictions;
+            return;
         }
-
+        
         if (node instanceof ParameterizedFunctionNode) {
-
             ParameterizedFunctionNode paramFunc = (ParameterizedFunctionNode) node;
             String funcName = paramFunc.getFunctionName();
             
             // Analyze the argument first
-            restrictions.merge(analyzeRestrictions(paramFunc.getArgument()));
+            collectConstraints(paramFunc.getArgument(), constraints);
             
             // Add function-specific restrictions
             switch (funcName) {
                 case "log":
                     // log{base}(x) requires x > 0
-                    restrictions.requirePositive();
+                    constraints.add(new DomainConstraint(
+                        DomainConstraint.Type.GREATER_THAN,
+                        0.0,
+                        false
+                    ));
                     break;
                     
                 case "root":
                     // root{n}(x) requires x >= 0 if n is even
                     double n = paramFunc.getParameter();
                     if (n % 2 == 0) {
-                        restrictions.requireNonNegative();
+                        constraints.add(new DomainConstraint(
+                            DomainConstraint.Type.GREATER_THAN,
+                            0.0,
+                            true
+                        ));
                     }
                     break;
             }
-            
-            return restrictions;
         }
-        
-        return restrictions;
     }
     
     /**
-     * Internal class to track domain restrictions
+     * Merge a list of constraints into a single Domain
+     * @param constraints List of constraints to merge
+     * @return The resulting Domain (may be ComposedDomain)
      */
-    private static class DomainRestrictions {
-
-        private double minBound = Double.NEGATIVE_INFINITY;
-        private double maxBound = Double.POSITIVE_INFINITY;
-        private boolean excludeNegativeInfinity = false;
-        private boolean excludePositiveInfinity = false;
+    private static Domain mergeConstraints(List<DomainConstraint> constraints) {
+        // Start with entire real line
+        double minBound = Double.NEGATIVE_INFINITY;
+        double maxBound = Double.POSITIVE_INFINITY;
+        boolean minInclusive = true;
+        boolean maxInclusive = true;
         
-        public void requirePositive() {
-
-            minBound = Math.max(minBound, 0.0);
-            excludeNegativeInfinity = true;
+        List<Domain> specialDomains = new ArrayList<>();
+        
+        for (DomainConstraint constraint : constraints) {
+            switch (constraint.type) {
+                case GREATER_THAN:
+                    minBound = Math.max(minBound, constraint.value);
+                    if (!constraint.inclusive) {
+                        minInclusive = false;
+                    }
+                    break;
+                    
+                case LESS_THAN:
+                    maxBound = Math.min(maxBound, constraint.value);
+                    if (!constraint.inclusive) {
+                        maxInclusive = false;
+                    }
+                    break;
+                    
+                case NOT_EQUAL:
+                    // Creates two intervals: (-inf, value) U (value, inf)
+                    if (minBound < constraint.value && constraint.value < maxBound) {
+                        specialDomains.add(new IntervalDomain(minBound, constraint.value));
+                        specialDomains.add(new IntervalDomain(constraint.value, maxBound));
+                        // Return composed domain immediately
+                        return new ComposedDomain(specialDomains.toArray(new Domain[0]));
+                    }
+                    break;
+                    
+                case ABS_GREATER_OR_EQUAL:
+                    // |x| >= value means x <= -value OR x >= value
+                    // Creates: (-inf, -value] U [value, inf)
+                    Domain left = new IntervalDomain(Double.NEGATIVE_INFINITY, -constraint.value);
+                    Domain right = new IntervalDomain(constraint.value, Double.POSITIVE_INFINITY);
+                    return new ComposedDomain(left, right);
+            }
         }
         
-        public void requireNonNegative() {
-
-            minBound = Math.max(minBound, 0.0);
+        // If we have special domains, return ComposedDomain
+        if (!specialDomains.isEmpty()) {
+            return new ComposedDomain(specialDomains.toArray(new Domain[0]));
         }
         
-        public void requireGreaterOrEqual(double value) {
-
-            minBound = Math.max(minBound, value);
+        // Apply epsilon shifts for open intervals
+        if (!minInclusive && !Double.isInfinite(minBound)) {
+            minBound += 1e-10;
+        }
+        if (!maxInclusive && !Double.isInfinite(maxBound)) {
+            maxBound -= 1e-10;
         }
         
-        public void requireRange(double min, double max) {
-
-            minBound = Math.max(minBound, min);
-            maxBound = Math.min(maxBound, max);
+        // Check for empty domain
+        if (minBound > maxBound) {
+            // Return empty interval
+            return new IntervalDomain(0, 0); // Empty domain
         }
         
-        public void excludePoint(double point) {
-            // For now, we can't represent discrete exclusions in IntervalDomain
-            // This would require a more complex domain representation
+        return new IntervalDomain(minBound, maxBound);
+    }
+    
+    /**
+     * Internal class representing a domain constraint
+     */
+    private static class DomainConstraint {
+        enum Type {
+            GREATER_THAN,        // x > value or x >= value
+            LESS_THAN,           // x < value or x <= value
+            NOT_EQUAL,           // x != value
+            ABS_GREATER_OR_EQUAL // |x| >= value
         }
         
-        public void requireAbsGreaterOrEqual(double value) {
-
-            // |x| >= value means x <= -value OR x >= value
-            // For simplicity, we'll use the more permissive x >= value
-            minBound = Math.max(minBound, value);
-        }
+        final Type type;
+        final double value;
+        final boolean inclusive;
         
-        public void requireAbsGreater(double value) {
-
-            // |x| > value means x < -value OR x > value
-            // For simplicity, we'll use x >= value
-            minBound = Math.max(minBound, value);
-            excludeNegativeInfinity = true;
-        }
-        
-        public void merge(DomainRestrictions other) {
-
-            minBound = Math.max(minBound, other.minBound);
-            maxBound = Math.min(maxBound, other.maxBound);
-            excludeNegativeInfinity = excludeNegativeInfinity || other.excludeNegativeInfinity;
-            excludePositiveInfinity = excludePositiveInfinity || other.excludePositiveInfinity;
-        }
-        
-        public IntervalDomain toDomain() {
-
-            // If restrictions are inconsistent, return empty/unrestricted domain
-            if (minBound > maxBound) return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-            
-            // Apply exclusions (convert open intervals to slightly shifted closed ones)
-            double effectiveMin = excludeNegativeInfinity && !Double.isInfinite(minBound) 
-                ? minBound + 1e-10 : minBound;
-            double effectiveMax = excludePositiveInfinity && !Double.isInfinite(maxBound) 
-                ? maxBound - 1e-10 : maxBound;
-            
-            return new IntervalDomain(effectiveMin, effectiveMax);
+        DomainConstraint(Type type, double value, boolean inclusive) {
+            this.type = type;
+            this.value = value;
+            this.inclusive = inclusive;
         }
     }
 }
