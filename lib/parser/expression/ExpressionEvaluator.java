@@ -28,20 +28,23 @@ public class ExpressionEvaluator {
         expression = expression.toLowerCase().trim();
         
         // Substitute constant values first (before substituting x)
-        if (constants != null) {
-            for (Map.Entry<String, Double> entry : constants.entrySet()) {
-                String constantName = entry.getKey().toLowerCase();
-                Double constantValue = entry.getValue();
-                
-                // Use word boundaries to avoid replacing parts of other identifiers
-                // For example, "q" should match "q" but not the "q" in "sqrt"
-                expression = expression.replaceAll("\\b" + constantName + "\\b", "(" + constantValue + ")");
-            }
+        if (constants != null)  for (Map.Entry<String, Double> entry : constants.entrySet()) {
+            
+            String constantName = entry.getKey().toLowerCase();
+            Double constantValue = entry.getValue();
+            
+            // Use word boundaries to avoid replacing parts of other identifiers
+            // For example, "q" should match "q" but not the "q" in "sqrt"
+            expression = expression.replaceAll("\\b" + constantName + "\\b", "(" + constantValue + ")");
         }
         
         expression = expression.replace("x", "(" + x + ")");
         
-        // Evaluate the expression
-        return new ExpressionParser().parse(expression);
+        // Parse the expression to build an AST
+        ExpressionParser parser = new ExpressionParser();
+        ExpressionNode ast = parser.parse(expression);
+        
+        // Evaluate the AST to get the numerical result
+        return ast.evaluate();
     }
 }

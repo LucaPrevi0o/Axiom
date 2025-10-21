@@ -1,7 +1,7 @@
 package lib.function.functions;
 
-import lib.function.domains.DiscreteDomain;
 import lib.function.Function;
+import lib.function.domain.domains.DiscreteDomain;
 
 public class NumberSetFunction extends Function {
     

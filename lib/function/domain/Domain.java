@@ -1,6 +1,6 @@
-package lib.function;
+package lib.function.domain;
 
-import lib.function.domains.IntervalDomain;
+import lib.function.domain.domains.IntervalDomain;
 
 public abstract class Domain {
     
@@ -13,49 +13,21 @@ public abstract class Domain {
 
         String trimmed = expression.trim().toLowerCase();
         switch (trimmed) {
-            case "sin":
-            case "cos":
-            case "tan":
-            case "csc":
-            case "sec":
-            case "cot":
-            case "sinh":
-            case "cosh":
-            case "tanh":
-            case "csch":
-            case "sech":
-            case "coth":
-                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-            case "arcsin":
-            case "arccos":
-            case "arccsc":
-            case "arcsec":
-            case "arccot":
-            case "arsinh":
-                return new IntervalDomain(-1, 1);
-            case "arctan":
-            case "arcoth":
-            case "arcosh":
-                return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-            case "log":
-            case "ln":
-            case "sqrt":
-                return new IntervalDomain(0, Double.POSITIVE_INFINITY);
             default:
                 return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
         }
     }
     
     /**
-     * Check if x is in the domain
-     * @param x The x value to check
-     * @return True if x is in the domain, false otherwise
+     * Check if an X value is in the domain
+     * @param x The value to check
+     * @return True if {@code x} is in the domain, false otherwise
      */
     public abstract boolean contains(double x);
     
     /**
      * Get the minimum and maximum bounds of the domain
-     * @return An array with [min, max] bounds
+     * @return The minimum bound
      */
     public abstract double getMinBound();
 
@@ -78,11 +50,12 @@ public abstract class Domain {
     public abstract void setMaxBound(double max);
 
     /**
-     * Get an array of sample X points inside this domain clipped to the
+     * Get an array of sample points inside this domain clipped to the
      * provided view range. Implementations should return points ordered
-     * from smallest to largest. For discrete domains this should return the
+     * from smallest to largest.
+     * For discrete domains this should return the
      * discrete values inside the intersection. For interval domains this
-     * should generate up to numSamples uniformly spaced points inside the
+     * should generate up to {@code numSamples} uniformly spaced points inside the
      * intersection of this domain and the view range.
      *
      * @param viewMin Minimum X value of the current view

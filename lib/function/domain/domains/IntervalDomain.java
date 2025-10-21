@@ -1,6 +1,6 @@
-package lib.function.domains;
+package lib.function.domain.domains;
 
-import lib.function.Domain;
+import lib.function.domain.Domain;
 
 public class IntervalDomain extends Domain {
 
@@ -54,6 +54,19 @@ public class IntervalDomain extends Domain {
     @Override
     public void setMaxBound(double max) { this.maxBound = max; }
     
+    /**
+     * Get an array of sample points inside this domain clipped to the
+     * provided view range. Implementations should return points ordered
+     * from smallest to largest.
+     * For discrete domains this should return the
+     * discrete values inside the intersection. For interval domains this
+     * should generate up to {@code numSamples} uniformly spaced points inside the
+     * intersection of this domain and the view range.
+     * @param viewMin Minimum X value of the current view
+     * @param viewMax Maximum X value of the current view
+     * @param numSamples The desired number of sample points
+     * @return An array of sample points inside the domain and view range
+     */
     @Override
     public double[] getSamplePoints(double viewMin, double viewMax, int numSamples) {
 
@@ -61,13 +74,13 @@ public class IntervalDomain extends Domain {
         double start = Math.max(minBound, viewMin);
         double end = Math.min(maxBound, viewMax);
 
-    if (Double.isNaN(start) || Double.isNaN(end)) return new double[0];
+        if (Double.isNaN(start) || Double.isNaN(end)) return new double[0];
 
-    // If the domain is unbounded, clamp to the view range
-    if (Double.isInfinite(minBound)) start = viewMin;
-    if (Double.isInfinite(maxBound)) end = viewMax;
+        // If the domain is unbounded, clamp to the view range
+        if (Double.isInfinite(minBound)) start = viewMin;
+        if (Double.isInfinite(maxBound)) end = viewMax;
 
-    if (Double.isInfinite(start) || Double.isInfinite(end) || start > end) return new double[0];
+        if (Double.isInfinite(start) || Double.isInfinite(end) || start > end) return new double[0];
 
         int samples = Math.max(2, Math.min(numSamples, 10000));
         double[] points = new double[samples];

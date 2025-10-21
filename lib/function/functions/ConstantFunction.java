@@ -1,7 +1,7 @@
 package lib.function.functions;
 
 import lib.function.Function;
-import lib.function.domains.IntervalDomain;
+import lib.function.domain.domains.IntervalDomain;
 
 /**
  * Represents a constant/parameter function with a single numeric value.

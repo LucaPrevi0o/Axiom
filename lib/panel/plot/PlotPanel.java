@@ -3,7 +3,7 @@ import javax.swing.*;
 
 import lib.function.Function;
 import lib.function.PlottableFunction;
-import lib.function.domains.DiscreteDomain;
+import lib.function.domain.domains.DiscreteDomain;
 import lib.function.functions.PointFunction;
 import lib.parser.expression.ExpressionEvaluator;
 

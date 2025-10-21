@@ -1,6 +1,6 @@
-package lib.function.domains;
+package lib.function.domain.domains;
 
-import lib.function.Domain;
+import lib.function.domain.Domain;
 
 public class DiscreteDomain extends Domain {
     
@@ -53,9 +53,27 @@ public class DiscreteDomain extends Domain {
     @Override
     public void setMinBound(double min) {}
 
+    /**
+     * Set the maximum bound of the domain (no-op for discrete domain)
+     * @param max The new maximum bound
+     */
     @Override
     public void setMaxBound(double max) {}
 
+    /**
+     * Get an array of sample points inside this domain clipped to the
+     * provided view range. Implementations should return points ordered
+     * from smallest to largest.
+     * For discrete domains this should return the
+     * discrete values inside the intersection. For interval domains this
+     * should generate up to {@code numSamples} uniformly spaced points inside the
+     * intersection of this domain and the view range.
+     *
+     * @param viewMin Minimum X value of the current view
+     * @param viewMax Maximum X value of the current view
+     * @param numSamples The number of sample points to generate (for interval domains)
+     * @return An array of sample points within the domain and view range
+     */
     @Override
     public double[] getSamplePoints(double viewMin, double viewMax, int numSamples) {
 

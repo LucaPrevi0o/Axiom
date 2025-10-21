@@ -2,9 +2,11 @@ package lib.function.functions;
 
 import java.awt.Color;
 
-import lib.function.Domain;
 import lib.function.PlottableFunction;
-import lib.function.domains.IntervalDomain;
+import lib.function.domain.DomainAnalyzer;
+import lib.function.domain.domains.IntervalDomain;
+import lib.parser.expression.ExpressionNode;
+import lib.parser.expression.ExpressionParser;
 
 public class ExpressionFunction extends PlottableFunction {
     
@@ -43,5 +45,20 @@ public class ExpressionFunction extends PlottableFunction {
      * @return The parsed domain
      */   
     @Override
-    protected IntervalDomain parseExpression() { return (IntervalDomain)Domain.parse(this.expression); }
+    protected IntervalDomain parseExpression() {
+
+        try {
+
+            // Parse the expression to build an AST
+            ExpressionParser parser = new ExpressionParser();
+            ExpressionNode ast = parser.parse(this.expression);
+            
+            // Analyze the AST to determine domain restrictions
+            return DomainAnalyzer.analyzeDomain(ast);
+        } catch (Exception e) {
+
+            // If parsing fails, assume unrestricted domain
+            return new IntervalDomain(Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+        }
+    }
 }

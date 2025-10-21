@@ -1,5 +1,7 @@
 package lib.function;
 
+import lib.function.domain.Domain;
+
 /**
  * Represents a mathematical function.
  * Can be extended for additional properties like color and visibility.

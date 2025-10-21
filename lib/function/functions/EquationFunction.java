@@ -1,8 +1,8 @@
 package lib.function.functions;
 
-import lib.function.Domain;
 import lib.function.PlottableFunction;
-import lib.function.domains.DiscreteDomain;
+import lib.function.domain.Domain;
+import lib.function.domain.domains.DiscreteDomain;
 
 public class EquationFunction extends PlottableFunction {
     
